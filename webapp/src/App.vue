@@ -254,7 +254,7 @@ onMounted(async () => {
                   <span><b>下载附件</b><small>{{ attachment.name }}　({{ attachment.kind }} 文件)</small></span>
                 </a>
               </div>
-              <div v-if="reply.signature" class="signature"><span>────────────</span>{{ reply.signature }}</div>
+              <div v-if="reply.signature_html || reply.signature" class="signature"><hr /><div v-if="reply.signature_html" v-html="reply.signature_html"></div><div v-else>{{ reply.signature }}</div></div>
             </div>
             <div class="floor-tail"><span>支持(0)</span><span>反对(0)</span><span>引用</span><span>回复</span><span>TOP</span></div>
           </div>

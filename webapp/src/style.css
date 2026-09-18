@@ -140,7 +140,10 @@ button { cursor: pointer; }
 .attachments a { min-height: 43px; padding: 5px 8px; display: flex; align-items: center; gap: 8px; color: #347da5; text-decoration: none; border: 1px solid #a8d2e7; background: linear-gradient(#fafdff, #e7f5fc); }
 .attachments a:hover { border-color: #72bce1; background: #f4fbff; }.attachments a > span:last-child { display: grid; gap: 2px; }.attachments b { color: #236f98; font-size: 12px; }.attachments small { color: #7394a5; font-size: 12px; }
 .attachment-icon { width: 28px; height: 28px; display: grid; place-items: center; color: #fff; font: 700 10px Arial; border-radius: 2px; background: #55a9d1; }
-.signature { max-width: 620px; margin-top: 34px; color: #778b94; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }.signature span { display: block; margin-bottom: 4px; color: #b9c5ca; letter-spacing: -1px; }
+.signature { max-width: 620px; margin-top: 34px; color: #778b94; font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+.signature hr { width: 240px; max-width: 100%; margin: 0 0 12px; border: 0; border-top: 1px dashed #b9c5ca; }
+.signature img { max-width: 100%; height: auto; }
+.message-html img.legacy-emoticon, .signature img.legacy-emoticon { display: inline; width: auto; height: auto; margin: 0 2px; vertical-align: middle; }
 .floor-tail { position: absolute; right: 8px; bottom: 5px; display: flex; gap: 10px; color: #2786b6; font-size: 12px; }.floor-tail span:not(:last-child)::after { content: " |"; margin-left: 8px; color: #b8d6e5; }
 .post-floor.single { grid-template-columns: 1fr; }.original-link { padding: 8px 12px; text-align: right; background: #f3fbfe; }.original-link a { color: #1885bc; }
 

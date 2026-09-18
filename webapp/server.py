@@ -128,6 +128,8 @@ def render_ubb(value: str) -> str:
         value = re.sub(r"\[" + tag + r"\]", f"<{target}>", value, flags=re.I)
         value = re.sub(r"\[/" + tag + r"\]", f"</{target}>", value, flags=re.I)
     value = re.sub(r"\[img\](.*?)\[/img\]", lambda m: '<img src="' + html.escape(safe_url(m[1], image=True), quote=True) + '">', value, flags=re.I | re.S)
+    value = re.sub(r"\[url=([^\]]+)\](.*?)\[/url\]", lambda m: '<a href="' + html.escape(safe_url(m[1]), quote=True) + '">' + m[2] + '</a>', value, flags=re.I | re.S)
+    value = re.sub(r"\[url\](.*?)\[/url\]", lambda m: '<a href="' + html.escape(safe_url(m[1]), quote=True) + '">' + html.escape(m[1]) + '</a>', value, flags=re.I | re.S)
     return value
 
 
@@ -156,6 +158,14 @@ def clean_signature(value: str) -> str:
     if re.fullmatch(r"[A-Za-z0-9_-]{18,32}", signature):
         return ""
     return signature
+
+
+def render_signature(value: str) -> str:
+    value = value or ''
+    # Opaque migration IDs are not signatures. Image-only signatures are valid.
+    if re.fullmatch(r'[A-Za-z0-9_-]{18,32}', value.strip()):
+        return ''
+    return sanitize_message(value)
 
 
 @lru_cache(maxsize=1)

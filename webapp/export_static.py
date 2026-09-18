@@ -79,6 +79,8 @@ def main():
     manifest = {'version': 1, 'chunk_size': CHUNK, 'total_posts': len(catalog), 'body_indexed': len(catalog), 'year_min': min(years), 'year_max': max(years), 'boards': [{'board': k, 'count': v} for k,v in sorted(boards.items(), key=lambda x:-x[1])], 'failed_details': len(failures)}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False), encoding='utf-8')
     add_initial_page()
+    from restore_legacy_assets import signatures
+    signatures()
     (APP_DIR / 'data' / 'static-export-report.json').write_text(json.dumps(failures), encoding='utf-8')
     print(json.dumps({'posts': len(catalog), 'failed_details': len(failures), 'bytes': sum(p.stat().st_size for p in OUT.rglob('*') if p.is_file()), 'seconds': round(time.time()-started)}, ensure_ascii=False), flush=True)
 

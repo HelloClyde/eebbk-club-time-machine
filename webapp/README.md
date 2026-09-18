@@ -30,6 +30,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory dist
 
 ## 数据与搜索
 
+旧式表情使用本地 `public/emot` GIF（来源见其中的 SOURCE.md），正文及签名中的 `[emNN]` 在显示时转换。未知编号保留原文。`archive/signatures` 保留原始签名经安全过滤后的 HTML，可用 `python restore_legacy_assets.py` 从本地原始 HTML 重建；完整导出也会自动生成。签名中的历史外链图片仍可能失效。
+
 - `archive/posts/*.json.gz`：每 500 个 ID 一片的预解析帖子（包含已存档楼层、图片链接、附件、签名、历史用户资料）。
 - `archive/catalog.json.gz`：压缩目录，第一次进入列表/搜索时加载；直达帖子不需要加载目录。
 - `archive/search/*.json.gz`：按字符分桶的单字、双字倒排索引，由 Web Worker 按需读取。
