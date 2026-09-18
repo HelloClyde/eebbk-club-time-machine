@@ -1,6 +1,11 @@
 name: Publish forum to GitHub Pages
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/pages.yml'
 permissions:
   contents: read
   pages: write
