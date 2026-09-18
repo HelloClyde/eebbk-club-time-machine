@@ -195,7 +195,7 @@ onMounted(async () => {
               <tr class="topic-divider"><td colspan="5">-= 普通主题 =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
                 <td class="status-cell"><span class="old-document" role="img" aria-label="存档主题" title="存档主题；原帖状态未收录"></span></td>
-                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" @click.prevent="openPost(post)" :title="post.title"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
+                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :title="`${post.title}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
                 <td class="list-updated" title="原帖最后更新时间尚未收录"><time>{{ post.last_update ? formatDate(post.last_update) : '—' }}</time><span>by: {{ post.last_author || '—' }}</span></td>
