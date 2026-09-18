@@ -131,6 +131,8 @@ button { cursor: pointer; }
 .message-html .attachment-heading b { margin-right: 7px; }
 .message-html .attachment-file { margin: 0; padding: 1px 0; background: white; }
 .message-html .attachment-file a { color: #0080ff; font-weight: normal; text-decoration: none; }
+.missing-attachment, .missing-attachment > span { display: block; }
+.message-html .missing-attachment .attachment-file { padding: 2px 4px; color: #778b94; }
 .message-html img.archive-file-icon { width: 16px; height: 16px; margin: 0 1px 0 0; vertical-align: middle; }
 .message-html p, .message-html div { margin: 0 0 8px; }
 .message-html img { display: inline-block; max-width: 100%; height: auto; margin: 5px 3px; vertical-align: middle; border: 0; }

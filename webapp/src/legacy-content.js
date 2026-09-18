@@ -42,13 +42,27 @@ export function renderLegacyContent(html, names, links = {}) {
   while(walker.nextNode()) nodes.push(walker.currentNode)
   for(const node of nodes) {
     const fragment=document.createDocumentFragment();let offset=0
-    for(const match of node.data.matchAll(/\[(em\d+)\]/gi)) {
-      const name=match[1].toLowerCase()
-      if(!names.has(name)) continue
+    for(const match of node.data.matchAll(/\[(em\d+)\]|\[attach\]\s*(\d+)\s*\[\/attach\]/gi)) {
+      const name=match[1]?.toLowerCase()
+      if(name && !names.has(name)) continue
       fragment.append(node.data.slice(offset,match.index))
-      const img=document.createElement('img')
-      img.src=urlFor(name);img.alt=match[0];img.className='legacy-emoticon';img.loading='lazy'
-      fragment.append(img);offset=match.index+match[0].length
+      if(name) {
+        const img=document.createElement('img')
+        img.src=urlFor(name);img.alt=match[0];img.className='legacy-emoticon';img.loading='lazy'
+        fragment.append(img)
+      } else {
+        const box=document.createElement('span')
+        box.className='legacy-attachment missing-attachment'
+        const heading=document.createElement('span')
+        heading.className='attachment-heading'
+        heading.textContent=`附件信息　[附件编号：${match[2]}]`
+        const body=document.createElement('span')
+        body.className='attachment-file'
+        body.textContent='文件未收录：存档未提供文件名和下载地址。'
+        box.append(heading,body)
+        fragment.append(box)
+      }
+      offset=match.index+match[0].length
     }
     if(offset) {fragment.append(node.data.slice(offset));node.replaceWith(fragment)}
   }
