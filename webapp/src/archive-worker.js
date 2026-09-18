@@ -27,13 +27,14 @@ self.onmessage = async ({data: {id, params}}) => {
       return
     }
     let allowed = null
-    if (q && !metadataOnly) {
+    if (q) {
       const chars = Array.from(q)
       const terms = [...new Set(chars.length === 1 ? chars : chars.slice(0,-1).map((c,i)=>c+chars[i+1]))].filter(t=>t.trim())
       const lists = []
       for (const term of terms) {
         const bucket = Array.from(term).reduce((n,c)=>n+c.codePointAt(0),0)%256
-        lists.push((await read(`search/${bucket}.json.gz`))[term] || [])
+        const directory = metadataOnly ? `search-${scope}` : 'search'
+        lists.push((await read(`${directory}/${bucket}.json.gz`))[term] || [])
       }
       lists.sort((a,b)=>a.length-b.length)
       allowed = new Set(lists.shift() || [])

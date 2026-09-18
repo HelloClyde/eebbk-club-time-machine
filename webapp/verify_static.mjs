@@ -44,7 +44,11 @@ for (const scope of ['title', 'author', 'body']) {
     const expected=JSON.parse(execFileSync('python',['-c',script],{encoding:'utf8',maxBuffer:16*1024*1024,env:{...process.env,PYTHONIOENCODING:'utf-8'}})).map(r=>r[0])
     assert.equal(actual.total,expected.length,`${scope}: ${q}`)
     assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30))
-    if(scope!=='body') assert.equal(requested.length,fetchCount,'title/author search must use catalog only')
+    if(scope!=='body') {
+      const fetched=requested.slice(fetchCount)
+      assert.ok(fetched.some(path=>path.includes(`/search-${scope}/`)), 'must use dedicated field index')
+      assert.ok(fetched.every(path=>path.includes(`/search-${scope}/`)), 'field search must not load body or general index shards')
+    }
     const cachedCount=requested.length
     const next=await search({...params,page:2})
     assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60))

@@ -33,6 +33,7 @@ python -m http.server 8765 --bind 127.0.0.1 --directory dist
 - `archive/posts/*.json.gz`：每 500 个 ID 一片的预解析帖子（包含已存档楼层、图片链接、附件、签名、历史用户资料）。
 - `archive/catalog.json.gz`：压缩目录，第一次进入列表/搜索时加载；直达帖子不需要加载目录。
 - `archive/search/*.json.gz`：按字符分桶的单字、双字倒排索引，由 Web Worker 按需读取。
+- `archive/search-title/*.json.gz`、`archive/search-author/*.json.gz`：标题、作者专用倒排索引，各 256 个分片。对应范围先取索引交集，再核验目录里的连续匹配，不下载正文。完整导出会自动生成；已有目录可运行 `python build_field_indexes.py` 单独重建。
 - `archive/texts/*.json.gz`：搜索核验文本。长关键词先求索引交集，再核验连续匹配；常见长词可能需要加载较多文本分片。重复查询和翻页复用结果。
 
 全文检索范围延续原版：主题标题、作者、版块和首帖正文；不包含全部回复。现代浏览器需支持 Worker 和 DecompressionStream。第一次搜索需要下载目录与相关索引，速度取决于网络。图片和附件仍使用历史外链，离线不可用，原站删除的文件无法自动恢复。
