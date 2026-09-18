@@ -79,7 +79,7 @@ button { cursor: pointer; }
 .list-announcement > span { float: right; color: #263f50; }
 .list-actions { min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .list-actions > span { color: #5983a5; font-size: 11px; }
-.new-topic { margin-left: 80px; padding: 4px 14px; border: 1px solid #a8d9ee; border-radius: 3px; color: #1386be; background: linear-gradient(white, #e3f5fc); font-weight: bold; cursor: not-allowed; }
+.new-topic { margin-left: 0; padding: 4px 14px; border: 1px solid #a8d9ee; border-radius: 3px; color: #1386be; background: linear-gradient(white, #e3f5fc); font-weight: bold; cursor: not-allowed; }
 .list-filters { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; align-items: center; }
 .list-filters select, .list-filters input, .list-filters button { height: 21px; padding: 1px 4px; border: 1px solid #a7b6c2; border-radius: 0; color: #344f60; background: #fff; font-size: 12px; }
 .list-filters select { max-width: 220px; }.list-filters input { width: 180px; }
