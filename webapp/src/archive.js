@@ -1,6 +1,7 @@
 const root = import.meta.env.BASE_URL
 import { renderLegacyContent } from './legacy-content'
 let emoticons
+let linkMap
 let manifest
 let worker
 let sequence=0
@@ -33,16 +34,21 @@ export async function archiveRequest(url) {
   const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json()
   if(!data[id]) throw new Error('帖子不存在')
   emoticons ||= fetch(`${root}emot/manifest.json`).then(r=>{if(!r.ok)throw new Error('表情资源加载失败');return r.json()}).then(names=>new Set(names)).catch(e=>{emoticons=null;throw e})
-  const [names, signatures] = await Promise.all([
+  linkMap ||= fetch(`${root}archive/link-map.json.gz`).then(async r=>{
+    if(!r.ok) throw new Error('帖子链接映射加载失败，请刷新重试')
+    return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
+  }).catch(e=>{linkMap=null;throw e})
+  const [names, signatures, links] = await Promise.all([
     emoticons,
     fetch(`${root}archive/signatures/${Math.floor(id/500)}.json.gz`).then(async r=>{
       if(!r.ok) throw new Error('签名数据加载失败，请刷新重试')
       return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
     }),
+    linkMap,
   ])
   for(const [index,reply] of (data[id].replies_list || []).entries()) {
-    reply.message_html=renderLegacyContent(reply.message_html,names)
-    reply.signature_html=renderLegacyContent(signatures[id]?.[index] || '',names)
+    reply.message_html=renderLegacyContent(reply.message_html,names,links)
+    reply.signature_html=renderLegacyContent(signatures[id]?.[index] || '',names,links)
   }
   return data[id]
 }

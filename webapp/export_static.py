@@ -6,6 +6,7 @@ import time
 from array import array
 from pathlib import Path
 from build_field_indexes import build_field_indexes
+from build_link_map import build_link_map
 from server import DB_PATH, APP_DIR, parse_archive, historical_profiles
 
 OUT = APP_DIR / 'public' / 'archive'
@@ -71,6 +72,7 @@ def main():
     catalog.sort(key=lambda r: (r['publish_time'], r['id']), reverse=True)
     save(OUT / 'catalog.json.gz', catalog)
     build_field_indexes(catalog)
+    build_link_map(catalog)
     buckets = [{} for _ in range(256)]
     for term, ids in postings.items():
         buckets[sum(map(ord, term)) % 256][term] = list(ids)

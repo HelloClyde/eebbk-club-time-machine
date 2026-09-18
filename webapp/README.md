@@ -30,6 +30,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory dist
 
 ## 数据与搜索
 
+正文与签名中的旧站 `bbkbbs/dispbbs.asp?Id=…`、`article/…` 链接通过 `archive/link-map.json.gz` 映射到本站帖子。支持大小写参数和相对地址；不存在的目标保留原链接。重复原帖 ID 选择目录中最新记录。旧链接的页码、楼层参数暂不映射，打开对应主题。可用 `python build_link_map.py` 重建映射，完整导出也会生成。
+
 旧式表情使用本地 `public/emot` GIF（来源见其中的 SOURCE.md），正文及签名中的 `[emNN]` 在显示时转换。未知编号保留原文。`archive/signatures` 保留原始签名经安全过滤后的 HTML，可用 `python restore_legacy_assets.py` 从本地原始 HTML 重建；完整导出也会自动生成。签名中的历史外链图片仍可能失效。
 
 - `archive/posts/*.json.gz`：每 500 个 ID 一片的预解析帖子（包含已存档楼层、图片链接、附件、签名、历史用户资料）。
