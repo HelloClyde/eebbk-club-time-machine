@@ -35,6 +35,23 @@ for(const q of ['', '使命', '炒鸡飞侠', '" OR 1=1 --']){
 const before=requested.length
 await search({q:'使命',page:2,page_size:30})
 assert.equal(requested.length,before,'cached pagination should not fetch again')
+for (const scope of ['title', 'author', 'body']) {
+  for (const q of ['使命', '炒鸡飞侠', '飞']) {
+    const params={q,scope,year:'2008',page:1,page_size:30}
+    const fetchCount=requested.length
+    const actual=await search(params)
+    const script='import sqlite3,json; d=sqlite3.connect("data/forum.db"); q='+JSON.stringify(q)+'; print(json.dumps(d.execute("select id from posts where '+scope+' like ? and publish_time like ? order by publish_time desc,id desc",("%"+q+"%","2008%")).fetchall()))'
+    const expected=JSON.parse(execFileSync('python',['-c',script],{encoding:'utf8',maxBuffer:16*1024*1024,env:{...process.env,PYTHONIOENCODING:'utf-8'}})).map(r=>r[0])
+    assert.equal(actual.total,expected.length,`${scope}: ${q}`)
+    assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30))
+    if(scope!=='body') assert.equal(requested.length,fetchCount,'title/author search must use catalog only')
+    const cachedCount=requested.length
+    const next=await search({...params,page:2})
+    assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60))
+    assert.equal(requested.length,cachedCount,'scoped pagination must reuse cache')
+    console.log(JSON.stringify({scope,q,total:actual.total}))
+  }
+}
 const result=await search({year:'2008',board:'学习机',page:1,page_size:30})
 assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith('2008')))
 const gzip=await import('node:zlib')

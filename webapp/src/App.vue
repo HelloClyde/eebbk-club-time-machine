@@ -9,6 +9,8 @@ const loading = ref(true)
 const error = ref('')
 const query = ref('')
 const activeQuery = ref('')
+const searchScope = ref('all')
+const activeScope = ref('all')
 const board = ref('')
 const year = ref('')
 const page = ref(1)
@@ -49,7 +51,7 @@ async function loadPosts() {
   error.value = ''
   try {
     const data = await fetchJson(apiUrl('/posts', {
-      q: activeQuery.value, board: board.value, year: year.value,
+      q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value,
       page: page.value, page_size: pageSize,
     }))
     if(version!==requestVersion)return
@@ -64,6 +66,7 @@ async function loadPosts() {
 
 function submitSearch() {
   activeQuery.value = query.value.trim()
+  activeScope.value = searchScope.value
   page.value = 1
   loadPosts()
 }
@@ -71,6 +74,7 @@ function submitSearch() {
 function clearFilters() {
   query.value = ''
   activeQuery.value = ''
+  searchScope.value = activeScope.value = 'all'
   board.value = ''
   year.value = ''
   page.value = 1
@@ -173,9 +177,10 @@ onMounted(async () => {
           <span>{{ board || '全部版块' }}　|　{{ activeQuery ? `搜索：${activeQuery}` : '帖子列表' }}　|　按发表时间排序</span>
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
+          <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
           <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>
           <select v-model="year" aria-label="年份"><option value="">全部年份</option><option v-for="item in years" :key="item" :value="item">{{ item }} 年</option></select>
-          <input v-model="query" aria-label="搜索关键词" placeholder="标题、作者、正文" />
+          <input v-model="query" aria-label="搜索关键词" :placeholder="{ all: '标题、作者、正文', title: '输入标题关键词', author: '输入作者名称', body: '输入首帖正文关键词' }[searchScope]" />
           <button type="submit">站内搜索</button>
           <button v-if="activeQuery || board || year" type="button" @click="clearFilters">全部主题</button>
         </form>

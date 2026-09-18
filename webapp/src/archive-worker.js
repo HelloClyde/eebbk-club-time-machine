@@ -17,7 +17,9 @@ self.onmessage = async ({data: {id, params}}) => {
   try {
     catalog ||= await read('catalog.json.gz')
     const q = (params.q || '').toLowerCase().trim()
-    const searchKey=JSON.stringify([q,params.board,params.year])
+    const scope = ['title', 'author', 'body'].includes(params.scope) ? params.scope : 'all'
+    const metadataOnly = scope === 'title' || scope === 'author'
+    const searchKey=JSON.stringify([q,scope,params.board,params.year])
     const size=Number(params.page_size || 30), page=Number(params.page || 1)
     if(searches.has(searchKey)) {
       const matches=searches.get(searchKey)
@@ -25,7 +27,7 @@ self.onmessage = async ({data: {id, params}}) => {
       return
     }
     let allowed = null
-    if (q) {
+    if (q && !metadataOnly) {
       const chars = Array.from(q)
       const terms = [...new Set(chars.length === 1 ? chars : chars.slice(0,-1).map((c,i)=>c+chars[i+1]))].filter(t=>t.trim())
       const lists = []
@@ -38,7 +40,8 @@ self.onmessage = async ({data: {id, params}}) => {
       for (const list of lists) { const next=new Set(list); allowed=new Set([...allowed].filter(x=>next.has(x))) }
     }
     let matches = catalog.filter(r => (!allowed || allowed.has(r.id)) && (!params.board || r.board === params.board) && (!params.year || r.publish_time.startsWith(params.year)))
-    if (Array.from(q).length > 2) {
+    if (q && metadataOnly) matches = matches.filter(r => (r[scope] || '').toLowerCase().includes(q))
+    if (q && (scope === 'body' || (!metadataOnly && Array.from(q).length > 2))) {
       const verified=[]
       const groups=new Map()
       for(const row of matches) {const chunk=Math.floor(row.id/500);if(!groups.has(chunk))groups.set(chunk,[]);groups.get(chunk).push(row)}
@@ -46,7 +49,10 @@ self.onmessage = async ({data: {id, params}}) => {
       for(let i=0;i<tasks.length;i+=6) {
         await Promise.all(tasks.slice(i,i+6).map(async ([chunk,rows])=>{
           const texts=await read(`texts/${chunk}.json.gz`)
-          for(const row of rows) if(texts[row.id].some(field=>field.includes(q))) verified.push(row)
+          for(const row of rows) {
+            const fields = texts[row.id]
+            if(scope === 'body' ? (fields[3] || '').includes(q) : fields.some(field=>field.includes(q))) verified.push(row)
+          }
         }))
       }
       const ids=new Set(verified.map(r=>r.id));matches=matches.filter(r=>ids.has(r.id))
