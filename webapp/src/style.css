@@ -152,6 +152,9 @@ button { cursor: pointer; }
 .post-floor.single { grid-template-columns: 1fr; }.original-link { padding: 8px 12px; text-align: right; background: #f3fbfe; }.original-link a { color: #1885bc; }
 
 footer { width: calc(100% - 20px); margin: 16px auto 5px; padding: 13px 8px; color: #8ba4b1; text-align: left; font-size: 12px; border-top: 1px solid #c4e2f1; }
+.footer-thanks { margin-bottom: 12px; line-height: 1.8; }
+.footer-thanks strong { color: #387eaa; }
+.footer-thanks p { margin: 3px 0 0; color: #6c8797; }
 
 /* The supplied historical screenshot supplies only the clipped banner surface. */
 .legacy-header { width: calc(100% - 12px); height: 87px; margin: 0 6px; border: 0; box-shadow: none; background: #49b8e8 url('./assets/forum-header.png') left top / auto 100% no-repeat; }

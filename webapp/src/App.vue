@@ -264,5 +264,11 @@ onMounted(async () => {
       </template>
     </article>
   </main>
-  <footer>步步高官方论坛时光机 · 本地归档浏览器 · 页面内容版权归原作者所有</footer>
+  <footer>
+    <section class="footer-thanks" aria-label="特别鸣谢">
+      <strong>特别鸣谢</strong>
+      <p>感谢 QQ 群「步步高电子词典游戏群」（群号：830340878），特别感谢群主「无云」导出并提供论坛帖子快照，让这些旧日交流得以保存与重现。</p>
+    </section>
+    <div>步步高官方论坛时光机 · 本地归档浏览器 · 页面内容版权归原作者所有</div>
+  </footer>
 </template>
