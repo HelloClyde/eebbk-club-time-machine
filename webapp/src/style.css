@@ -136,6 +136,8 @@ button { cursor: pointer; }
 .message-html img { display: inline-block; max-width: 100%; height: auto; margin: 5px 3px; vertical-align: middle; border: 0; }
 .message-html a { color: #177eb3; text-decoration: underline; }
 .message-html blockquote { margin: 8px 0; padding: 7px 10px; color: #657f8d; border: 1px solid #c7e2ef; background: #f6fbfe; }
+.message-html .legacy-quote, .signature .legacy-quote { margin: 8px 0 12px; padding: 8px 10px; border: 1px solid #d4d9df; background: #f4f5f7; color: #666; font: 12px/1.65 SimSun, "宋体", serif; white-space: normal; text-align: left; }
+.message-html .legacy-quote div, .message-html .legacy-quote p, .signature .legacy-quote div, .signature .legacy-quote p { margin: 0; }
 .attachments { width: min(520px, 82%); margin: 24px auto 10px; display: grid; gap: 7px; }
 .attachments a { min-height: 43px; padding: 5px 8px; display: flex; align-items: center; gap: 8px; color: #347da5; text-decoration: none; border: 1px solid #a8d2e7; background: linear-gradient(#fafdff, #e7f5fc); }
 .attachments a:hover { border-color: #72bce1; background: #f4fbff; }.attachments a > span:last-child { display: grid; gap: 2px; }.attachments b { color: #236f98; font-size: 12px; }.attachments small { color: #7394a5; font-size: 12px; }
