@@ -2,6 +2,14 @@ const root = import.meta.env.BASE_URL
 import { renderLegacyContent } from './legacy-content'
 let emoticons
 let linkMap
+let digestMap
+function getDigest() {
+  digestMap ||= fetch(`${root}archive/digest.json.gz`).then(async r=>{
+    if(!r.ok) throw new Error('精华状态加载失败')
+    return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
+  }).catch(e=>{digestMap=null;throw e})
+  return digestMap
+}
 let manifest
 let worker
 let sequence=0
@@ -19,7 +27,10 @@ export async function archiveRequest(url) {
   if (path === '/posts') {
     if(!url.searchParams.get('q') && !url.searchParams.get('board') && !url.searchParams.get('year') && Number(url.searchParams.get('page') || 1)===1) {
       const data=await getManifest()
-      if(data.initial_items) return {items:data.initial_items,total:data.total_posts,page:1,page_size:30}
+      if(data.initial_items && url.searchParams.get('digest')!=='1') {
+        const digest=await getDigest()
+        return {items:data.initial_items.map(r=>({...r,digest:digest[r.post_id] || null})),total:data.total_posts,page:1,page_size:30}
+      }
     }
     if (!worker) {
       worker=new Worker(new URL('./archive-worker.js',import.meta.url),{type:'module'})
@@ -33,6 +44,7 @@ export async function archiveRequest(url) {
   if(!response.ok) throw new Error('帖子数据加载失败')
   const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json()
   if(!data[id]) throw new Error('帖子不存在')
+  data[id].digest=(await getDigest())[data[id].post_id] || null
   emoticons ||= fetch(`${root}emot/manifest.json`).then(r=>{if(!r.ok)throw new Error('表情资源加载失败');return r.json()}).then(names=>new Set(names)).catch(e=>{emoticons=null;throw e})
   linkMap ||= fetch(`${root}archive/link-map.json.gz`).then(async r=>{
     if(!r.ok) throw new Error('帖子链接映射加载失败，请刷新重试')

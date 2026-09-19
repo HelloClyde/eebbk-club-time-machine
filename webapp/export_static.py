@@ -73,6 +73,8 @@ def main():
     save(OUT / 'catalog.json.gz', catalog)
     build_field_indexes(catalog)
     build_link_map(catalog)
+    from build_digest import build_digest
+    build_digest()
     buckets = [{} for _ in range(256)]
     for term, ids in postings.items():
         buckets[sum(map(ord, term)) % 256][term] = list(ids)

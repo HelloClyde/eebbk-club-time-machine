@@ -30,6 +30,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory dist
 
 ## 数据与搜索
 
+历史精华：`python build_digest.py` 从旧 ASP 快照中提取带“本帖被加为精华”标题的 `jing.gif` 系统标记，生成 `archive/digest.json.gz`。列表、详情及筛选使用同一证据表；记录最近一次有明确加精标记的快照日期，不推断其后是否取消精华。标题“申精”、用户精华数量及普通回复不作为状态依据。未匹配的帖子为未知。默认年份仍为 2008，查看所有历史精华需选择全部年份。
+
 正文与签名中的旧站 `bbkbbs/dispbbs.asp?Id=…`、`article/…` 链接通过 `archive/link-map.json.gz` 映射到本站帖子。支持大小写参数和相对地址；不存在的目标保留原链接。重复原帖 ID 选择目录中最新记录。旧链接的页码、楼层参数暂不映射，打开对应主题。可用 `python build_link_map.py` 重建映射，完整导出也会生成。
 
 旧式表情使用本地 `public/emot` GIF（来源见其中的 SOURCE.md），正文及签名中的 `[emNN]` 在显示时转换。未知编号保留原文。`archive/signatures` 保留原始签名经安全过滤后的 HTML，可用 `python restore_legacy_assets.py` 从本地原始 HTML 重建；完整导出也会自动生成。签名中的历史外链图片仍可能失效。

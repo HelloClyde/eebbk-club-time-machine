@@ -59,6 +59,17 @@ for (const scope of ['title', 'author', 'body']) {
 const result=await search({year:'2008',board:'学习机',page:1,page_size:30})
 assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith('2008')))
 const gzip=await import('node:zlib')
+const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
+const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
+for(const year of ['', '2008']) {
+  const expected=cat.filter(r=>digestMap[r.post_id] && (!year || r.publish_time.startsWith(year)))
+  const actual=await search({digest:'1',year,page:1,page_size:30})
+  assert.equal(actual.total,expected.length)
+  assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
+  assert.ok(actual.items.every(r=>r.digest?.snapshot))
+  const next=await search({digest:'1',year,page:2,page_size:30})
+  assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
+}
 const detail=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/posts/314.json.gz`)))[157323]
 assert.equal(detail.replies_list[0].message_html.match(/<img /g).length,2)
 assert.ok(!JSON.stringify(detail).includes('local_html_path'))

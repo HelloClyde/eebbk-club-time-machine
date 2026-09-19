@@ -4,6 +4,7 @@ try {
   const manifest=JSON.parse(await readFile(`${root}/manifest.json`,'utf8'))
   if(!manifest.total_posts)throw new Error('empty archive')
   await access(`${root}/catalog.json.gz`)
+  await access(`${root}/digest.json.gz`)
   await access(`${root}/link-map.json.gz`)
   await access('public/emot/manifest.json')
   for(const directory of ['search','search-title','search-author'])
