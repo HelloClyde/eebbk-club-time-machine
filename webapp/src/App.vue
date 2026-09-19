@@ -15,8 +15,6 @@ const activeScope = ref('all')
 const board = ref('')
 const year = ref('2008')
 const digest = ref('')
-const rated = ref('')
-const ratingOptions = ref([])
 const page = ref(1)
 const total = ref(0)
 const selected = ref(null)
@@ -62,7 +60,7 @@ async function loadPosts() {
   error.value = ''
   try {
     const data = await fetchJson(apiUrl('/posts', {
-      q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value, digest: digest.value, rated: rated.value,
+      q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value, digest: digest.value,
       page: page.value, page_size: pageSize,
     }))
     if(version!==requestVersion)return
@@ -89,7 +87,6 @@ function clearFilters() {
   board.value = ''
   year.value = ''
   digest.value = ''
-  rated.value = ''
   page.value = 1
   loadPosts()
 }
@@ -142,7 +139,7 @@ function titleParts(title) {
   return parts
 }
 
-watch([board, year, digest, rated], () => { page.value = 1; loadPosts() })
+watch([board, year, digest], () => { page.value = 1; loadPosts() })
 
 onMounted(async () => {
   window.addEventListener('hashchange',()=>{
@@ -153,12 +150,11 @@ onMounted(async () => {
   const linkedPost = window.location.hash.match(/^#post-(\d+)$/)
   if (linkedPost) openPost({ id: Number(linkedPost[1]) })
   try {
-    const [boardData, statData, ratingData] = await Promise.all([
-      fetchJson(apiUrl('/boards')), fetchJson(apiUrl('/stats')), fetchJson(apiUrl('/rating-categories')),
+    const [boardData, statData] = await Promise.all([
+      fetchJson(apiUrl('/boards')), fetchJson(apiUrl('/stats')),
     ])
     boards.value = boardData.items
     stats.value = statData
-    ratingOptions.value = ratingData.items
   } catch (err) {
     error.value = err.message
   }
@@ -192,14 +188,13 @@ onMounted(async () => {
           <span>{{ board || '全部版块' }}　|　{{ activeQuery ? `搜索：${activeQuery}` : '帖子列表' }}　|　按发表时间排序</span>
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
-          <select v-model="rated" aria-label="评分理由筛选"><option value="">全部评分状态</option><option value="1">全部有评分记录</option><option v-for="item in ratingOptions" :key="item.value" :value="item.value">{{ item.label }}（{{ item.count }} 篇）</option></select>
           <select v-model="digest" aria-label="精华筛选"><option value="">全部主题</option><option value="1">历史精华</option></select>
           <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
           <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>
           <select v-model="year" aria-label="年份"><option value="">全部年份</option><option v-for="item in years" :key="item" :value="item">{{ item }} 年</option></select>
           <input v-model="query" aria-label="搜索关键词" :placeholder="{ all: '标题、作者、正文', title: '输入标题关键词', author: '输入作者名称', body: '输入首帖正文关键词' }[searchScope]" />
           <button type="submit">站内搜索</button>
-          <button v-if="activeQuery || board || year || digest || rated" type="button" @click="clearFilters">全部主题</button>
+          <button v-if="activeQuery || board || year || digest" type="button" @click="clearFilters">全部主题</button>
         </form>
         <section class="list-table-wrap" aria-label="帖子列表">
           <div v-if="loading" class="state">正在翻阅旧帖……</div>
