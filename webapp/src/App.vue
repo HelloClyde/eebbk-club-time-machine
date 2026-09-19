@@ -16,6 +16,7 @@ const board = ref('')
 const year = ref('2008')
 const digest = ref('')
 const rated = ref('')
+const ratingOptions = ref([])
 const page = ref(1)
 const total = ref(0)
 const selected = ref(null)
@@ -152,11 +153,12 @@ onMounted(async () => {
   const linkedPost = window.location.hash.match(/^#post-(\d+)$/)
   if (linkedPost) openPost({ id: Number(linkedPost[1]) })
   try {
-    const [boardData, statData] = await Promise.all([
-      fetchJson(apiUrl('/boards')), fetchJson(apiUrl('/stats')),
+    const [boardData, statData, ratingData] = await Promise.all([
+      fetchJson(apiUrl('/boards')), fetchJson(apiUrl('/stats')), fetchJson(apiUrl('/rating-categories')),
     ])
     boards.value = boardData.items
     stats.value = statData
+    ratingOptions.value = ratingData.items
   } catch (err) {
     error.value = err.message
   }
@@ -190,7 +192,7 @@ onMounted(async () => {
           <span>{{ board || '全部版块' }}　|　{{ activeQuery ? `搜索：${activeQuery}` : '帖子列表' }}　|　按发表时间排序</span>
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
-          <select v-model="rated" aria-label="评分筛选"><option value="">全部评分状态</option><option value="1">有评分记录</option></select>
+          <select v-model="rated" aria-label="评分理由筛选"><option value="">全部评分状态</option><option value="1">全部有评分记录</option><option v-for="item in ratingOptions" :key="item.value" :value="item.value">{{ item.label }}（{{ item.count }} 篇）</option></select>
           <select v-model="digest" aria-label="精华筛选"><option value="">全部主题</option><option value="1">历史精华</option></select>
           <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
           <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>

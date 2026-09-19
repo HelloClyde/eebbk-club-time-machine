@@ -1,4 +1,5 @@
 const base = new URL(/* @vite-ignore */ '../', import.meta.url)
+import { matchesRating } from './rating-filters.js'
 const cache = new Map()
 async function read(path) {
   if (!cache.has(path)) {
@@ -52,7 +53,7 @@ self.onmessage = async ({data: {id, params}}) => {
     }
     let matches = catalog.filter(r => (!allowed || allowed.has(r.id)) && (!params.board || r.board === params.board) && (!params.year || r.publish_time.startsWith(params.year)))
     if(params.digest==='1') matches=matches.filter(r=>r.digest)
-    if(params.rated==='1') matches=matches.filter(r=>r.rating_count>0)
+    if(params.rated) matches=matches.filter(r=>matchesRating(ratings[r.id],params.rated))
     if (q && metadataOnly) matches = matches.filter(r => (r[scope] || '').toLowerCase().includes(q))
     if (q && (scope === 'body' || (!metadataOnly && Array.from(q).length > 2))) {
       const verified=[]

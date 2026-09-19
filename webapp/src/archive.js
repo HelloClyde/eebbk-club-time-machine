@@ -1,5 +1,6 @@
 const root = import.meta.env.BASE_URL
 import { renderLegacyContent } from './legacy-content'
+import { ratingCategories } from './rating-filters'
 let emoticons
 let linkMap
 let digestMap
@@ -28,6 +29,7 @@ async function getManifest() {
 }
 export async function archiveRequest(url) {
   const path=url.pathname.replace(/^.*\/api/, '')
+  if(path==='/rating-categories') return {items:ratingCategories(await getRatings())}
   if (path === '/stats' || path === '/boards') {
     const data=await getManifest()
     return path==='/stats' ? data : {items:data.boards}
@@ -35,7 +37,7 @@ export async function archiveRequest(url) {
   if (path === '/posts') {
     if(!url.searchParams.get('q') && !url.searchParams.get('board') && !url.searchParams.get('year') && Number(url.searchParams.get('page') || 1)===1) {
       const data=await getManifest()
-      if(data.initial_items && url.searchParams.get('digest')!=='1' && url.searchParams.get('rated')!=='1') {
+      if(data.initial_items && url.searchParams.get('digest')!=='1' && !url.searchParams.get('rated')) {
         const [digest,ratings]=await Promise.all([getDigest(),getRatings()])
         return {items:data.initial_items.map(r=>({...r,digest:digest[r.post_id] || null,rating_count:ratings[r.id]?.length || 0})),total:data.total_posts,page:1,page_size:30}
       }

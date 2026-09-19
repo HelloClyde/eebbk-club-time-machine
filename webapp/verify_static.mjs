@@ -18,7 +18,8 @@ globalThis.fetch=async input=>{
 }
 let complete
 globalThis.self={postMessage:result=>complete(result)}
-const worker=(await readFile('src/archive-worker.js','utf8')).replace("new URL(/* @vite-ignore */ '../', import.meta.url)","new URL('https://example.test/forum/')")
+const filterModule='data:text/javascript;base64,'+Buffer.from(await readFile('src/rating-filters.js','utf8')).toString('base64')
+const worker=(await readFile('src/archive-worker.js','utf8')).replace("new URL(/* @vite-ignore */ '../', import.meta.url)","new URL('https://example.test/forum/')").replace('./rating-filters.js',filterModule)
 await import('data:text/javascript;base64,'+Buffer.from(worker).toString('base64'))
 async function search(params){
   return new Promise((resolve,reject)=>{complete=reply=>reply.error?reject(new Error(reply.error)):resolve(reply.result);self.onmessage({data:{id:1,params}})})
@@ -62,6 +63,12 @@ const gzip=await import('node:zlib')
 const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
 const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
 const ratings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
+for(const reason of ['活动奖励','原创内容','鼓励分享','不存在的分类','']) {
+  const expected=cat.filter(r=>(ratings[r.id]||[]).some(log=>String(log.reason??'').trim()===reason))
+  const result=await search({rated:`reason:${reason}`,page:1,page_size:30})
+  assert.equal(result.total,expected.length)
+  assert.deepEqual(result.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
+}
 for(const params of [{rated:'1'}, {rated:'1',year:'2008'}, {rated:'1',digest:'1'}]) {
   const expected=cat.filter(r=>ratings[r.id]?.length && (!params.year || r.publish_time.startsWith(params.year)) && (!params.digest || digestMap[r.post_id]))
   const actual=await search({...params,page:1,page_size:30})
