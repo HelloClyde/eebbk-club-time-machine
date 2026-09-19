@@ -27,6 +27,10 @@ def build_digest():
                 topic,date=found
                 if topic not in result or result[topic]['snapshot']<date:result[topic]={'snapshot':date}
     path=ROOT/'public/archive/digest.json.gz'
+    collection=ROOT/'digest-collection.json'
+    if collection.exists():
+        for topic,evidence in json.loads(collection.read_text('utf-8')).items():
+            result.setdefault(topic,evidence)
     reviewed=ROOT/'digest-reviewed.json'
     if reviewed.exists():
         for topic,evidence in json.loads(reviewed.read_text('utf-8')).items():

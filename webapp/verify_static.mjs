@@ -61,6 +61,13 @@ const result=await search({year:'2008',board:'学习机',page:1,page_size:30})
 assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith('2008')))
 const gzip=await import('node:zlib')
 const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
+const collection=JSON.parse(await readFile('digest-collection.json','utf8'))
+assert.equal(Object.keys(collection).length,47)
+for(const [topic,evidence] of Object.entries(collection)) {
+  assert.ok(digestMap[topic], `Missing collected digest ${topic}`)
+  assert.equal(evidence.collection_id,176886)
+  assert.equal(evidence.floor,1)
+}
 const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
 const ratings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
 for(const reason of ['活动奖励','原创内容','鼓励分享','不存在的分类','']) {
@@ -85,7 +92,7 @@ for(const year of ['', '2008']) {
   const actual=await search({digest:'1',year,page:1,page_size:30})
   assert.equal(actual.total,expected.length)
   assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
-  assert.ok(actual.items.every(r=>r.digest?.snapshot || ['candidate_review','screenshot_confirmed'].includes(r.digest?.source)))
+  assert.ok(actual.items.every(r=>r.digest?.snapshot || ['candidate_review','screenshot_confirmed','collection'].includes(r.digest?.source)))
   const next=await search({digest:'1',year,page:2,page_size:30})
   assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
 }
