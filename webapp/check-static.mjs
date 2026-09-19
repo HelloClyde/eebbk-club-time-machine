@@ -4,6 +4,10 @@ try {
   const manifest=JSON.parse(await readFile(`${root}/manifest.json`,'utf8'))
   if(!manifest.total_posts)throw new Error('empty archive')
   await access(`${root}/catalog.json.gz`)
+  const {gunzipSync}=await import('node:zlib')
+  const groups=JSON.parse(gunzipSync(await readFile(`${root}/catalog-manifest.json.gz`)))
+  if(groups.reduce((sum,g)=>sum+g.count,0)!==manifest.total_posts)throw new Error('incomplete browsing groups')
+  for(const group of groups)await access(`${root}/${group.path}`)
   await access(`${root}/digest.json.gz`)
   await access(`${root}/ratings.json.gz`)
   await access(`${root}/link-map.json.gz`)
@@ -12,6 +16,7 @@ try {
     for(let i=0;i<256;i++)await access(`${root}/${directory}/${i}.json.gz`)
   const posts=await readdir(`${root}/posts`)
   for(const name of posts) {
+    await access(`${root}/catalog/${name}`)
     await access(`${root}/texts/${name}`)
     await access(`${root}/signatures/${name}`)
   }

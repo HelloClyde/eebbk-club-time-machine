@@ -24,6 +24,17 @@ await import('data:text/javascript;base64,'+Buffer.from(worker).toString('base64
 async function search(params){
   return new Promise((resolve,reject)=>{complete=reply=>reply.error?reject(new Error(reply.error)):resolve(reply.result);self.onmessage({data:{id:1,params}})})
 }
+const coldStart=await search({year:'2008',page:1,page_size:30})
+const coldFiles=requested.slice()
+let coldBytes=0, metadataBytes=0
+for(const path of coldFiles) {
+  const size=(await stat(`${archive}/${path.slice('/forum/archive/'.length)}`)).size
+  coldBytes+=size
+  if(path.includes('/catalog/') || path.includes('/browse/') || path.endsWith('/catalog-manifest.json.gz'))metadataBytes+=size
+}
+assert.ok(coldBytes<1_000_000, '2008 cold browsing must stay below 1 MB of archive transfers')
+assert.ok(coldFiles.filter(p=>p.includes('/catalog/')).length<10,'load only current page metadata')
+console.log(JSON.stringify({cold2008:{bytes:coldBytes,metadataBytes,requests:coldFiles.length}}))
 for(const q of ['', '使命', '炒鸡飞侠', '" OR 1=1 --']){
   const t=performance.now()
   const result=await search({q,page:1,page_size:30})
@@ -48,7 +59,7 @@ for (const scope of ['title', 'author', 'body']) {
     if(scope!=='body') {
       const fetched=requested.slice(fetchCount)
       assert.ok(fetched.some(path=>path.includes(`/search-${scope}/`)), 'must use dedicated field index')
-      assert.ok(fetched.every(path=>path.includes(`/search-${scope}/`)), 'field search must not load body or general index shards')
+      assert.ok(fetched.every(path=>!path.includes('/texts/') && !path.includes('/search/')), 'field search must not load body or general index shards')
     }
     const cachedCount=requested.length
     const next=await search({...params,page:2})
@@ -69,6 +80,15 @@ for(const [topic,evidence] of Object.entries(collection)) {
   assert.equal(evidence.floor,1)
 }
 const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
+assert.deepEqual(coldStart.items.map(r=>r.id),cat.filter(r=>r.publish_time.startsWith('2008')).slice(0,30).map(r=>r.id))
+for(const params of [{year:'2008'}, {board:cat[0].board}, {year:'2008',board:cat.find(r=>r.publish_time.startsWith('2008')).board}, {year:'1900'}]) {
+  const expected=cat.filter(r=>(!params.year || r.publish_time.startsWith(params.year)) && (!params.board || r.board===params.board))
+  for(const page of [1,2,Math.max(1,Math.ceil(expected.length/30))]) {
+    const actual=await search({...params,page,page_size:30})
+    assert.equal(actual.total,expected.length)
+    assert.deepEqual(actual.items.map(r=>r.id),expected.slice((page-1)*30,page*30).map(r=>r.id))
+  }
+}
 const ratings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
 for(const reason of ['活动奖励','原创内容','鼓励分享','不存在的分类','']) {
   const expected=cat.filter(r=>(ratings[r.id]||[]).some(log=>String(log.reason??'').trim()===reason))
@@ -85,7 +105,7 @@ for(const params of [{rated:'1'}, {rated:'1',year:'2008'}, {rated:'1',digest:'1'
   const before=requested.length
   const next=await search({...params,page:2,page_size:30})
   assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
-  assert.equal(requested.length,before)
+  assert.ok(requested.slice(before).every(path=>path.includes('/catalog/')), 'browsing pagination may load only metadata shards')
 }
 for(const year of ['', '2008']) {
   const expected=cat.filter(r=>digestMap[r.post_id] && (!year || r.publish_time.startsWith(year)))
@@ -97,6 +117,7 @@ for(const year of ['', '2008']) {
   assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
 }
 const detail=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/posts/314.json.gz`)))[157323]
+assert.ok(requested.every(path=>!path.endsWith('/catalog.json.gz')), 'never download the monolithic catalog')
 assert.equal(detail.replies_list[0].message_html.match(/<img /g).length,2)
 assert.ok(!JSON.stringify(detail).includes('local_html_path'))
 async function bytes(dir){let n=0;for(const entry of await readdir(dir,{withFileTypes:true})){const path=dir+'/'+entry.name;n+=entry.isDirectory()?await bytes(path):(await stat(path)).size}return n}

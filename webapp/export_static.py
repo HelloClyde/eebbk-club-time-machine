@@ -71,6 +71,8 @@ def main():
         save(OUT / 'texts' / f'{current}.json.gz', texts)
     catalog.sort(key=lambda r: (r['publish_time'], r['id']), reverse=True)
     save(OUT / 'catalog.json.gz', catalog)
+    from build_catalog_shards import build_catalog_shards
+    build_catalog_shards()
     build_field_indexes(catalog)
     build_link_map(catalog)
     from build_digest import build_digest
