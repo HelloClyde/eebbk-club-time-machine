@@ -13,10 +13,15 @@ async function read(path) {
 }
 let catalog
 let digest
+let ratings
 const searches = new Map()
 self.onmessage = async ({data: {id, params}}) => {
   try {
     catalog ||= await read('catalog.json.gz')
+    if(!ratings) {
+      ratings=await read('ratings.json.gz')
+      catalog=catalog.map(row=>({...row,rating_count:ratings[row.id]?.length || 0}))
+    }
     if(!digest) {
       digest=await read('digest.json.gz')
       catalog=catalog.map(row=>({...row,digest:digest[row.post_id] || null}))
@@ -24,7 +29,7 @@ self.onmessage = async ({data: {id, params}}) => {
     const q = (params.q || '').toLowerCase().trim()
     const scope = ['title', 'author', 'body'].includes(params.scope) ? params.scope : 'all'
     const metadataOnly = scope === 'title' || scope === 'author'
-    const searchKey=JSON.stringify([q,scope,params.board,params.year,params.digest])
+    const searchKey=JSON.stringify([q,scope,params.board,params.year,params.digest,params.rated])
     const size=Number(params.page_size || 30), page=Number(params.page || 1)
     if(searches.has(searchKey)) {
       const matches=searches.get(searchKey)
@@ -47,6 +52,7 @@ self.onmessage = async ({data: {id, params}}) => {
     }
     let matches = catalog.filter(r => (!allowed || allowed.has(r.id)) && (!params.board || r.board === params.board) && (!params.year || r.publish_time.startsWith(params.year)))
     if(params.digest==='1') matches=matches.filter(r=>r.digest)
+    if(params.rated==='1') matches=matches.filter(r=>r.rating_count>0)
     if (q && metadataOnly) matches = matches.filter(r => (r[scope] || '').toLowerCase().includes(q))
     if (q && (scope === 'body' || (!metadataOnly && Array.from(q).length > 2))) {
       const verified=[]

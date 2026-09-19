@@ -61,6 +61,18 @@ assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith
 const gzip=await import('node:zlib')
 const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
 const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
+const ratings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
+for(const params of [{rated:'1'}, {rated:'1',year:'2008'}, {rated:'1',digest:'1'}]) {
+  const expected=cat.filter(r=>ratings[r.id]?.length && (!params.year || r.publish_time.startsWith(params.year)) && (!params.digest || digestMap[r.post_id]))
+  const actual=await search({...params,page:1,page_size:30})
+  assert.equal(actual.total,expected.length)
+  assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
+  assert.ok(actual.items.every(r=>r.rating_count>0))
+  const before=requested.length
+  const next=await search({...params,page:2,page_size:30})
+  assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
+  assert.equal(requested.length,before)
+}
 for(const year of ['', '2008']) {
   const expected=cat.filter(r=>digestMap[r.post_id] && (!year || r.publish_time.startsWith(year)))
   const actual=await search({digest:'1',year,page:1,page_size:30})

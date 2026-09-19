@@ -15,6 +15,7 @@ const activeScope = ref('all')
 const board = ref('')
 const year = ref('2008')
 const digest = ref('')
+const rated = ref('')
 const page = ref(1)
 const total = ref(0)
 const selected = ref(null)
@@ -53,7 +54,7 @@ async function loadPosts() {
   error.value = ''
   try {
     const data = await fetchJson(apiUrl('/posts', {
-      q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value, digest: digest.value,
+      q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value, digest: digest.value, rated: rated.value,
       page: page.value, page_size: pageSize,
     }))
     if(version!==requestVersion)return
@@ -80,6 +81,7 @@ function clearFilters() {
   board.value = ''
   year.value = ''
   digest.value = ''
+  rated.value = ''
   page.value = 1
   loadPosts()
 }
@@ -132,7 +134,7 @@ function titleParts(title) {
   return parts
 }
 
-watch([board, year, digest], () => { page.value = 1; loadPosts() })
+watch([board, year, digest, rated], () => { page.value = 1; loadPosts() })
 
 onMounted(async () => {
   window.addEventListener('hashchange',()=>{
@@ -181,13 +183,14 @@ onMounted(async () => {
           <span>{{ board || '全部版块' }}　|　{{ activeQuery ? `搜索：${activeQuery}` : '帖子列表' }}　|　按发表时间排序</span>
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
+          <select v-model="rated" aria-label="评分筛选"><option value="">全部评分状态</option><option value="1">有评分记录</option></select>
           <select v-model="digest" aria-label="精华筛选"><option value="">全部主题</option><option value="1">历史精华</option></select>
           <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
           <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>
           <select v-model="year" aria-label="年份"><option value="">全部年份</option><option v-for="item in years" :key="item" :value="item">{{ item }} 年</option></select>
           <input v-model="query" aria-label="搜索关键词" :placeholder="{ all: '标题、作者、正文', title: '输入标题关键词', author: '输入作者名称', body: '输入首帖正文关键词' }[searchScope]" />
           <button type="submit">站内搜索</button>
-          <button v-if="activeQuery || board || year || digest" type="button" @click="clearFilters">全部主题</button>
+          <button v-if="activeQuery || board || year || digest || rated" type="button" @click="clearFilters">全部主题</button>
         </form>
         <section class="list-table-wrap" aria-label="帖子列表">
           <div v-if="loading" class="state">正在翻阅旧帖……</div>
@@ -199,7 +202,7 @@ onMounted(async () => {
             <tbody>
               <tr class="topic-divider"><td colspan="5">-= {{ digest ? '历史精华' : '主题列表' }} =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
-                <td class="status-cell"><span v-if="post.digest" class="digest-badge" :title="`历史精华：${post.digest.snapshot} 快照有系统加精标记`">精</span><span v-else class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
+                <td class="status-cell"><span v-if="post.digest" class="digest-badge" :title="`历史精华：${post.digest.snapshot} 快照有系统加精标记`">精</span><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
                 <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
@@ -224,6 +227,12 @@ onMounted(async () => {
       <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.replies_list?.length || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
       <div v-if="selected.digest" class="digest-notice">本帖曾被加为精华（历史快照：{{ selected.digest.snapshot }}）。仅表示该快照时的状态。</div>
+      <details v-if="selected.ratings?.length" class="ratings-panel">
+        <summary>有评分记录（{{ selected.ratings.length }} 条，不代表精华）</summary>
+        <table><thead><tr><th>楼层</th><th>评分人</th><th>评分</th><th>理由</th><th>时间</th></tr></thead><tbody>
+          <tr v-for="(rating,index) in selected.ratings" :key="index"><td>{{ rating.floor }} 楼</td><td>{{ rating.posterName || '未收录' }}</td><td>{{ rating.score ?? '未收录' }} {{ rating.beanUnit }}</td><td>{{ rating.reason || '未收录' }}</td><td>{{ rating.createTime ? new Date(rating.createTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未收录' }}</td></tr>
+        </tbody></table>
+      </details>
       <div v-if="detailLoading" class="state">正在打开旧帖……</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else>

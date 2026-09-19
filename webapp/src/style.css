@@ -103,6 +103,11 @@ button { cursor: pointer; }
 .list-author time, .list-updated time { color: #8e9ca5; font: 10px/13px Arial, sans-serif; }.list-updated span { font-size: 11px; }
 .list-counts { text-align: center; color: #67747b; font: 11px Arial, sans-serif; }.list-counts > span { color: #508b29; }
 .digest-badge { display: inline-block; padding: 1px 3px; border: 1px solid #7bb8db; color: #226aa1; background: #e6f5ff; font-weight: bold; }
+.rating-badge { display: inline-block; padding: 1px 3px; border: 1px solid #b8c898; color: #627a29; background: #f4f8e9; }
+.ratings-panel { padding: 8px 10px; font-size: 12px; border-bottom: 1px solid #c1d5f4; overflow-x: auto; }
+.ratings-panel summary { cursor: pointer; color: #627a29; }
+.ratings-panel table { width: 100%; margin-top: 8px; border-collapse: collapse; text-align: left; }
+.ratings-panel th, .ratings-panel td { padding: 5px; border: 1px solid #d3e0ef; }
 .digest-notice { padding: 6px 10px; border-bottom: 1px solid #c1d5f4; color: #397baa; background: #f4faff; font-size: 12px; }
 .legacy-topic-table tbody tr:hover .subject-cell { background: #f5faff; }
 .list-pagination { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; margin: 8px 0 20px; font: 11px Arial, SimSun, serif; }

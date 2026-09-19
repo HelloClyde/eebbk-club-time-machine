@@ -30,6 +30,8 @@ python -m http.server 8765 --bind 127.0.0.1 --directory dist
 
 ## 数据与搜索
 
+评分标签：`python build_ratings.py` 从原始页面的 `rateLogVOList` 提取评分人、理由、分数、单位、时间及对应楼层，生成 `archive/ratings.json.gz`。仅实际非空评分记录才显示“评”标签，不凭 `hasRate` 推断。筛选“有评分记录”覆盖已存档楼层（含回复）的评分，正负分均保留，不代表精华、版主操作或完整历史。详情页可展开查看；支持与其他筛选组合。
+
 历史精华：`python build_digest.py` 从旧 ASP 快照中提取带“本帖被加为精华”标题的 `jing.gif` 系统标记，生成 `archive/digest.json.gz`。列表、详情及筛选使用同一证据表；记录最近一次有明确加精标记的快照日期，不推断其后是否取消精华。标题“申精”、用户精华数量及普通回复不作为状态依据。未匹配的帖子为未知。默认年份仍为 2008，查看所有历史精华需选择全部年份。
 
 正文与签名中的旧站 `bbkbbs/dispbbs.asp?Id=…`、`article/…` 链接通过 `archive/link-map.json.gz` 映射到本站帖子。支持大小写参数和相对地址；不存在的目标保留原链接。重复原帖 ID 选择目录中最新记录。旧链接的页码、楼层参数暂不映射，打开对应主题。可用 `python build_link_map.py` 重建映射，完整导出也会生成。

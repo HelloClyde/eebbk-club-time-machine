@@ -85,6 +85,8 @@ def main():
     add_initial_page()
     from restore_legacy_assets import signatures
     signatures()
+    from build_ratings import build_ratings
+    build_ratings()
     (APP_DIR / 'data' / 'static-export-report.json').write_text(json.dumps(failures), encoding='utf-8')
     print(json.dumps({'posts': len(catalog), 'failed_details': len(failures), 'bytes': sum(p.stat().st_size for p in OUT.rglob('*') if p.is_file()), 'seconds': round(time.time()-started)}, ensure_ascii=False), flush=True)
 
