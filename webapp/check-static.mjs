@@ -10,7 +10,7 @@ try {
   for(const group of groups)await access(`${root}/${group.path}`)
   await access(`${root}/digest.json.gz`)
   await access(`${root}/ratings.json.gz`)
-  await access(`${root}/link-map.json.gz`)
+  for(let i=0;i<256;i++)await access(`${root}/link-map/${i}.json.gz`)
   await access('public/emot/manifest.json')
   for(const directory of ['search','search-title','search-author'])
     for(let i=0;i<256;i++)await access(`${root}/${directory}/${i}.json.gz`)

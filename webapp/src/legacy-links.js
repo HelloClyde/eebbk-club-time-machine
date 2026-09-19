@@ -1,4 +1,4 @@
-export function mapLegacyLink(href, mapping) {
+export function legacyTopicId(href) {
   try {
     const url = new URL(href, 'https://club.eebbk.com/bbkbbs/')
     if (!['http:', 'https:'].includes(url.protocol) || url.hostname.toLowerCase() !== 'club.eebbk.com') return null
@@ -9,7 +9,13 @@ export function mapLegacyLink(href, mapping) {
       topic = url.pathname.match(/^\/article\/(\d+)\/?$/i)?.[1]
     }
     if (!topic || !/^\d+$/.test(topic)) return null
-    const record = mapping[String(Number(topic))]
-    return Number.isSafeInteger(record) && record > 0 ? `#post-${record}` : null
+    const id = Number(topic)
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : null
   } catch { return null }
+}
+
+export function mapLegacyLink(href, mapping) {
+  const topic = legacyTopicId(href)
+  const record = topic && mapping[topic]
+  return Number.isSafeInteger(record) && record > 0 ? `#post-${record}` : null
 }

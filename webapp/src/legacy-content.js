@@ -1,5 +1,17 @@
 // Only transform text nodes of already-sanitized archive HTML, never attributes.
-import { mapLegacyLink } from './legacy-links'
+import { mapLegacyLink, legacyTopicId } from './legacy-links'
+export function collectLegacyTopicIds(contents) {
+  const ids = new Set()
+  for (const html of contents) {
+    const template = document.createElement('template')
+    template.innerHTML = html || ''
+    for (const anchor of template.content.querySelectorAll('a[href]')) {
+      const id = legacyTopicId(anchor.getAttribute('href'))
+      if (id) ids.add(id)
+    }
+  }
+  return [...ids]
+}
 export function renderLegacyContent(html, names, links = {}) {
   const template = document.createElement('template')
   template.innerHTML = html || ''

@@ -1,8 +1,9 @@
 const root = import.meta.env.BASE_URL
-import { renderLegacyContent } from './legacy-content'
+import { renderLegacyContent, collectLegacyTopicIds } from './legacy-content'
+import { createLinkMapLoader } from './link-map-loader'
 import { ratingCategories } from './rating-filters'
 let emoticons
-let linkMap
+const loadLinkMap = createLinkMapLoader(root)
 let digestMap
 let ratingsMap
 function getRatings() {
@@ -57,18 +58,15 @@ export async function archiveRequest(url) {
   data[id].digest=(await getDigest())[data[id].post_id] || null
   data[id].ratings=(await getRatings())[id] || []
   emoticons ||= fetch(`${root}emot/manifest.json`).then(r=>{if(!r.ok)throw new Error('表情资源加载失败');return r.json()}).then(names=>new Set(names)).catch(e=>{emoticons=null;throw e})
-  linkMap ||= fetch(`${root}archive/link-map.json.gz`).then(async r=>{
-    if(!r.ok) throw new Error('帖子链接映射加载失败，请刷新重试')
-    return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
-  }).catch(e=>{linkMap=null;throw e})
-  const [names, signatures, links] = await Promise.all([
+  const [names, signatures] = await Promise.all([
     emoticons,
     fetch(`${root}archive/signatures/${Math.floor(id/500)}.json.gz`).then(async r=>{
       if(!r.ok) throw new Error('签名数据加载失败，请刷新重试')
       return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
     }),
-    linkMap,
   ])
+  const contents=(data[id].replies_list || []).flatMap((reply,index)=>[reply.message_html, signatures[id]?.[index]])
+  const links=await loadLinkMap(collectLegacyTopicIds(contents))
   for(const [index,reply] of (data[id].replies_list || []).entries()) {
     reply.message_html=renderLegacyContent(reply.message_html,names,links)
     reply.signature_html=renderLegacyContent(signatures[id]?.[index] || '',names,links)
