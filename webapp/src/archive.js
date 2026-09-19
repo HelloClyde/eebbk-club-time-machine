@@ -8,6 +8,14 @@ const loadLinkMap = createLinkMapLoader(root)
 let digestMap
 let ratingsMap
 let threadPages
+let legacyBoards
+function getLegacyBoards() {
+  legacyBoards ||= fetch(`${root}archive/legacy-boards.json.gz`).then(async r=>{
+    if(!r.ok)throw new Error('原论坛板块信息加载失败')
+    return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
+  }).catch(e=>{legacyBoards=null;throw e})
+  return legacyBoards
+}
 function getThreadPages() {
   threadPages ||= fetch(`${root}archive/thread-pages.json.gz`).then(async r=>{
     if(!r.ok)throw new Error('主题分页索引加载失败')
@@ -45,11 +53,11 @@ export async function archiveRequest(url) {
     return path==='/stats' ? data : {items:data.boards}
   }
   if (path === '/posts') {
-    if(!url.searchParams.get('q') && !url.searchParams.get('board') && !url.searchParams.get('year') && Number(url.searchParams.get('page') || 1)===1) {
+    if(!url.searchParams.get('legacy_board') && !url.searchParams.get('q') && !url.searchParams.get('board') && !url.searchParams.get('year') && Number(url.searchParams.get('page') || 1)===1) {
       const data=await getManifest()
       if(data.initial_items && url.searchParams.get('digest')!=='1' && !url.searchParams.get('rated')) {
-        const [digest,ratings,threads]=await Promise.all([getDigest(),getRatings(),getThreadPages()])
-        return {items:data.initial_items.map(r=>({...r,digest:digest[r.post_id] || null,rating_count:(threads.threads[r.id] || [[1,r.id]]).reduce((sum,[,rid])=>sum+(ratings[rid]?.length || 0),0)})),total:data.total_posts,page:1,page_size:30}
+        const [digest,ratings,threads,legacy]=await Promise.all([getDigest(),getRatings(),getThreadPages(),getLegacyBoards()])
+        return {items:data.initial_items.map(r=>({...r,legacy_board:legacy[r.post_id] || null,digest:digest[r.post_id] || null,rating_count:(threads.threads[r.id] || [[1,r.id]]).reduce((sum,[,rid])=>sum+(ratings[rid]?.length || 0),0)})),total:data.total_posts,page:1,page_size:30}
       }
     }
     if (!worker) {
@@ -74,6 +82,7 @@ export async function archiveRequest(url) {
   for(const key of ['id','post_id','title','author','publish_time','board'])data[id][key]=main[key]
   Object.assign(data[id],{thread_page:route.page,thread_pages:route.pages.map(([number])=>number),floor_offset:route.offset,total_floors:route.total || data[id].replies_list.length})
   data[id].digest=(await getDigest())[data[id].post_id] || null
+  data[id].legacy_board=(await getLegacyBoards())[data[id].post_id] || null
   data[id].ratings=(await getRatings())[id] || []
   emoticons ||= fetch(`${root}emot/manifest.json`).then(r=>{if(!r.ok)throw new Error('表情资源加载失败');return r.json()}).then(names=>new Set(names)).catch(e=>{emoticons=null;throw e})
   const [names, signatures] = await Promise.all([

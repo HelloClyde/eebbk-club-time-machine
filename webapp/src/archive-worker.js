@@ -14,6 +14,8 @@ async function read(path) {
 }
 let catalogManifest
 let threadPages
+let legacyBoards
+const matchesLegacy=(original,filter)=>!filter || (filter==='38' ? !!legacyBoards[original] : legacyBoards[original]?.source===filter)
 const canonicalId=id=>threadPages.aliases[id] || id
 const topicRatings=id=>(threadPages.threads[id] || [[1,id]]).flatMap(([,rid])=>ratings[rid] || [])
 async function browseRows(params) {
@@ -23,7 +25,7 @@ async function browseRows(params) {
   for(let i=0;i<groups.length;i+=6) {
     await Promise.all(groups.slice(i,i+6).map(async g=>rows.push(...await read(g.path))))
   }
-  return rows
+  return rows.filter(row=>matchesLegacy(row[2],params.legacy_board))
 }
 async function metadata(ids) {
   const chunks=[...new Set(ids.map(id=>Math.floor(id/500)))]
@@ -34,7 +36,7 @@ async function metadata(ids) {
       for(const row of Object.values(data)) rows.set(row.id,row)
     }))
   }
-  return ids.map(id=>rows.get(id)).filter(Boolean).map(row=>({...row,rating_count:topicRatings(row.id).length,digest:digest[row.post_id] || null}))
+  return ids.map(id=>rows.get(id)).filter(Boolean).map(row=>({...row,legacy_board:legacyBoards[row.post_id] || null,rating_count:topicRatings(row.id).length,digest:digest[row.post_id] || null}))
 }
 let digest
 let ratings
@@ -44,10 +46,11 @@ self.onmessage = async ({data: {id, params}}) => {
     ratings ||= await read('ratings.json.gz')
     digest ||= await read('digest.json.gz')
     threadPages ||= await read('thread-pages.json.gz')
+    legacyBoards ||= await read('legacy-boards.json.gz')
     const q = (params.q || '').toLowerCase().trim()
     const scope = ['title', 'author', 'body'].includes(params.scope) ? params.scope : 'all'
     const metadataOnly = scope === 'title' || scope === 'author'
-    const searchKey=JSON.stringify([q,scope,params.board,params.year,params.digest,params.rated])
+    const searchKey=JSON.stringify([q,scope,params.board,params.year,params.digest,params.rated,params.legacy_board])
     const size=Number(params.page_size || 30), page=Number(params.page || 1)
     if(searches.has(searchKey)) {
       const matches=searches.get(searchKey)
@@ -77,7 +80,7 @@ self.onmessage = async ({data: {id, params}}) => {
       allowed = new Set(lists.shift() || [])
       for (const list of lists) { const next=new Set(list); allowed=new Set([...allowed].filter(x=>next.has(x))) }
     }
-    if(params.board || params.year || params.digest==='1' || params.rated) {
+    if(params.board || params.year || params.digest==='1' || params.rated || params.legacy_board) {
       const rows=await browseRows(params)
       const permitted=new Set(rows.filter(([rid,,original])=>(params.digest!=='1' || digest[original]) && (!params.rated || matchesRating(topicRatings(rid),params.rated))).map(r=>r[0]))
       allowed=new Set([...allowed].filter(rid=>permitted.has(canonicalId(rid))))

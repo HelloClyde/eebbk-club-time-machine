@@ -73,6 +73,8 @@ def main():
     save(OUT / 'catalog.json.gz', catalog)
     from build_thread_pages import build_thread_pages, update_manifest
     build_thread_pages()
+    from build_legacy_boards import build_legacy_boards
+    build_legacy_boards()
     from build_catalog_shards import build_catalog_shards
     build_catalog_shards()
     build_field_indexes(catalog)

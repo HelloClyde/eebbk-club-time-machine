@@ -11,6 +11,7 @@ try {
   if(groups.reduce((sum,g)=>sum+g.count,0)!==manifest.total_posts)throw new Error('incomplete browsing groups')
   for(const group of groups)await access(`${root}/${group.path}`)
   await access(`${root}/digest.json.gz`)
+  await access(`${root}/legacy-boards.json.gz`)
   await access(`${root}/ratings.json.gz`)
   for(let i=0;i<256;i++)await access(`${root}/link-map/${i}.json.gz`)
   await access('public/emot/manifest.json')

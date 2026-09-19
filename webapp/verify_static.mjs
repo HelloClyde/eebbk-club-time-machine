@@ -87,6 +87,23 @@ for (const scope of ['title', 'author', 'body']) {
   }
 }
 const result=await search({year:'2008',board:'学习机',page:1,page_size:30})
+const legacyBoards=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/legacy-boards.json.gz`)))
+assert.equal(cat.filter(r=>legacyBoards[r.post_id]?.source==='snapshot').length,14)
+for(const filter of ['38','snapshot','link']) {
+  for(const year of ['', '2008']) {
+    const expected=cat.filter(r=>(!year || r.publish_time.startsWith(year)) && (filter==='38' ? !!legacyBoards[r.post_id] : legacyBoards[r.post_id]?.source===filter))
+    for(const page of [1,2]) {
+      const actual=await search({legacy_board:filter,year,page,page_size:30})
+      assert.equal(actual.total,expected.length)
+      assert.deepEqual(actual.items.map(r=>r.id),expected.slice((page-1)*30,page*30).map(r=>r.id))
+      assert.ok(actual.items.every(r=>r.legacy_board))
+    }
+    const ids=new Set(await expectedSearch('BB','title',year))
+    const actual=await search({legacy_board:filter,year,q:'BB',scope:'title',page:1,page_size:30})
+    assert.deepEqual(actual.items.map(r=>r.id),expected.filter(r=>ids.has(r.id)).slice(0,30).map(r=>r.id))
+    assert.equal(actual.total,expected.filter(r=>ids.has(r.id)).length)
+  }
+}
 assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith('2008')))
 for(const params of [
   {q:'6988年终总结',scope:'title'},

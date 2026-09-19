@@ -16,6 +16,7 @@ const activeScope = ref('all')
 const board = ref('')
 const year = ref('2008')
 const digest = ref('')
+const legacyBoard = ref('')
 const page = ref(1)
 const total = ref(0)
 const selected = ref(null)
@@ -62,7 +63,7 @@ async function loadPosts() {
   try {
     const data = await fetchJson(apiUrl('/posts', {
       q: activeQuery.value, scope: activeScope.value, board: board.value, year: year.value, digest: digest.value,
-      page: page.value, page_size: pageSize,
+      page: page.value, page_size: pageSize, legacy_board: legacyBoard.value,
     }))
     if(version!==requestVersion)return
     posts.value = data.items
@@ -88,6 +89,7 @@ function clearFilters() {
   board.value = ''
   year.value = ''
   digest.value = ''
+  legacyBoard.value = ''
   page.value = 1
   loadPosts()
 }
@@ -143,7 +145,7 @@ function titleParts(title) {
   return parts
 }
 
-watch([board, year, digest], () => { page.value = 1; loadPosts() })
+watch([board, year, digest, legacyBoard], () => { page.value = 1; loadPosts() })
 
 onMounted(async () => {
   window.addEventListener('hashchange',()=>{
@@ -193,12 +195,13 @@ onMounted(async () => {
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
           <select v-model="digest" aria-label="精华筛选"><option value="">全部主题</option><option value="1">历史精华</option></select>
+          <select v-model="legacyBoard" aria-label="原论坛板块"><option value="">原论坛板块：不限</option><option value="38">编程区（全部线索）</option><option value="snapshot">编程区（旧快照确认）</option><option value="link">编程区（旧链接推定）</option></select>
           <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
           <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>
           <select v-model="year" aria-label="年份"><option value="">全部年份</option><option v-for="item in years" :key="item" :value="item">{{ item }} 年</option></select>
           <input v-model="query" aria-label="搜索关键词" :placeholder="{ all: '标题、作者、正文', title: '输入标题关键词', author: '输入作者名称', body: '输入首帖正文关键词' }[searchScope]" />
           <button type="submit">站内搜索</button>
-          <button v-if="activeQuery || board || year || digest" type="button" @click="clearFilters">全部主题</button>
+          <button v-if="activeQuery || board || year || digest || legacyBoard" type="button" @click="clearFilters">全部主题</button>
         </form>
         <section class="list-table-wrap" aria-label="帖子列表">
           <div v-if="loading" class="state">正在翻阅旧帖……</div>
@@ -211,7 +214,7 @@ onMounted(async () => {
               <tr class="topic-divider"><td colspan="5">-= {{ digest ? '历史精华' : '主题列表' }} =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
                 <td class="status-cell"><img v-if="post.digest" :src="digestIcon" class="digest-icon" alt="历史精华" :title="post.digest.source === 'user_confirmed' ? '历史精华：用户确认补录' : post.digest.source === 'collection' ? '历史精华：精华汇总帖收录' : post.digest.source === 'screenshot_confirmed' ? '历史精华：旧论坛截图确认' : post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`" /><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
-                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
+                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small><small v-if="post.legacy_board">[编程区·{{ post.legacy_board.source === 'snapshot' ? '快照确认' : '链接推定' }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
                 <td class="list-updated" title="原帖最后更新时间尚未收录"><time>{{ post.last_update ? formatDate(post.last_update) : '—' }}</time><span>by: {{ post.last_author || '—' }}</span></td>
@@ -239,6 +242,7 @@ onMounted(async () => {
         <button :disabled="detailLoading || selected.thread_page >= selected.thread_pages.length" @click="openPost(selected, selected.thread_page + 1)">下一页</button>
       </div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
+      <div v-if="selected.legacy_board" class="digest-notice">原论坛板块：编程区（boardid=38）。<template v-if="selected.legacy_board.source === 'snapshot'">旧快照确认：{{ selected.legacy_board.snapshot }}。</template><template v-else>旧链接推定，可能存在迁版或链接参数不准确的情况。依据：<a :href="`#post-${selected.legacy_board.record_id}?page=${selected.legacy_board.page || 1}`" target="_blank" rel="noopener">存档记录 {{ selected.legacy_board.record_id }} 第 {{ selected.legacy_board.page || 1 }} 页的第 {{ selected.legacy_board.floor }} 个楼层</a>。</template>保留新版分类不变；未标记不表示不属于编程区。</div>
       <div v-if="selected.digest" class="digest-notice">
         <template v-if="selected.digest.source === 'candidate_review'">历史精华 · 候选审核补录（非系统标记，依据本帖加精表述）。
           <details><summary>查看补录依据</summary><p v-for="(item,i) in selected.digest.evidence" :key="i">{{ item.floor }} 楼 · {{ item.author }} · {{ item.time }}：{{ item.context }}</p></details>
