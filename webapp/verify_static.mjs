@@ -85,7 +85,7 @@ for(const year of ['', '2008']) {
   const actual=await search({digest:'1',year,page:1,page_size:30})
   assert.equal(actual.total,expected.length)
   assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
-  assert.ok(actual.items.every(r=>r.digest?.snapshot || r.digest?.source==='candidate_review'))
+  assert.ok(actual.items.every(r=>r.digest?.snapshot || ['candidate_review','screenshot_confirmed'].includes(r.digest?.source)))
   const next=await search({digest:'1',year,page:2,page_size:30})
   assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
 }

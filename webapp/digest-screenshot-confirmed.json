@@ -1,0 +1,14 @@
+{
+  "253825": {
+    "source": "screenshot_confirmed",
+    "record_id": 181880,
+    "evidence_note": "用户提供的旧论坛列表截图中，此标题左侧显示蓝色精华图标。",
+    "evidence_file": "codex-clipboard-666ed462-1cf3-4a3d-bd6f-8af913f4c1d9.png"
+  },
+  "243000": {
+    "source": "screenshot_confirmed",
+    "record_id": 176534,
+    "evidence_note": "用户提供的旧论坛列表截图中，此标题左侧显示蓝色精华图标；以此修正先前仅根据条件性回复作出的候选排除。",
+    "evidence_file": "codex-clipboard-666ed462-1cf3-4a3d-bd6f-8af913f4c1d9.png"
+  }
+}

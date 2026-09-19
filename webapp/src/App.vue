@@ -207,7 +207,7 @@ onMounted(async () => {
             <tbody>
               <tr class="topic-divider"><td colspan="5">-= {{ digest ? '历史精华' : '主题列表' }} =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
-                <td class="status-cell"><img v-if="post.digest" :src="digestIcon" class="digest-icon" alt="历史精华" :title="post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`" /><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
+                <td class="status-cell"><img v-if="post.digest" :src="digestIcon" class="digest-icon" alt="历史精华" :title="post.digest.source === 'screenshot_confirmed' ? '历史精华：旧论坛截图确认' : post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`" /><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
                 <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
@@ -235,6 +235,7 @@ onMounted(async () => {
         <template v-if="selected.digest.source === 'candidate_review'">历史精华 · 候选审核补录（非系统标记，依据本帖加精表述）。
           <details><summary>查看补录依据</summary><p v-for="(item,i) in selected.digest.evidence" :key="i">{{ item.floor }} 楼 · {{ item.author }} · {{ item.time }}：{{ item.context }}</p></details>
         </template>
+        <template v-else-if="selected.digest.source === 'screenshot_confirmed'">历史精华 · 旧论坛截图确认。{{ selected.digest.evidence_note }}</template>
         <template v-else>本帖曾被加为精华（历史快照：{{ selected.digest.snapshot }}）。仅表示该快照时的状态。</template>
       </div>
       <div v-if="detailLoading" class="state">正在打开旧帖……</div>
