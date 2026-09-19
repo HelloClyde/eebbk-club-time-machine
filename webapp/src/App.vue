@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { archiveRequest } from './archive'
+import { legacyTitle } from './legacy-title'
 
 const posts = ref([])
 const boards = ref([])
@@ -117,6 +118,7 @@ function formatDate(value) {
 }
 
 function titleParts(title) {
+  title = legacyTitle(title).text
   const needle=activeQuery.value.toLowerCase()
   if(!needle)return [{text:title,match:false}]
   const parts=[];let offset=0;let position
@@ -167,7 +169,7 @@ onMounted(async () => {
   </nav>
 
   <main class="page-shell">
-    <div class="breadcrumb"><button @click="closePost">步步高官方论坛</button><span>»</span><span>{{ selected ? selected.board : (board || '论坛首页') }}</span><span v-if="selected">» {{ selected.title }}</span></div>
+    <div class="breadcrumb"><button @click="closePost">步步高官方论坛</button><span>»</span><span>{{ selected ? selected.board : (board || '论坛首页') }}</span><span v-if="selected">» {{ legacyTitle(selected.title).text }}</span></div>
 
     <template v-if="!selected">
       <section class="legacy-list">
@@ -195,7 +197,7 @@ onMounted(async () => {
               <tr class="topic-divider"><td colspan="5">-= 普通主题 =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
                 <td class="status-cell"><span class="old-document" role="img" aria-label="存档主题" title="存档主题；原帖状态未收录"></span></td>
-                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :title="`${post.title}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
+                <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
                 <td class="list-updated" title="原帖最后更新时间尚未收录"><time>{{ post.last_update ? formatDate(post.last_update) : '—' }}</time><span>by: {{ post.last_author || '—' }}</span></td>
@@ -217,7 +219,7 @@ onMounted(async () => {
 
     <article v-else class="post-page">
       <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.replies_list?.length || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
-      <header class="post-title"><span>主题：</span><h1>{{ selected.title }}</h1><small>[{{ selected.board }}]</small></header>
+      <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
       <div v-if="detailLoading" class="state">正在打开旧帖……</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else>
