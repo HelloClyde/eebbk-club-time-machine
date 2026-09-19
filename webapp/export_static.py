@@ -71,6 +71,8 @@ def main():
         save(OUT / 'texts' / f'{current}.json.gz', texts)
     catalog.sort(key=lambda r: (r['publish_time'], r['id']), reverse=True)
     save(OUT / 'catalog.json.gz', catalog)
+    from build_thread_pages import build_thread_pages, update_manifest
+    build_thread_pages()
     from build_catalog_shards import build_catalog_shards
     build_catalog_shards()
     build_field_indexes(catalog)
@@ -85,6 +87,7 @@ def main():
     manifest = {'version': 1, 'chunk_size': CHUNK, 'total_posts': len(catalog), 'body_indexed': len(catalog), 'year_min': min(years), 'year_max': max(years), 'boards': [{'board': k, 'count': v} for k,v in sorted(boards.items(), key=lambda x:-x[1])], 'failed_details': len(failures)}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False), encoding='utf-8')
     add_initial_page()
+    update_manifest()
     from restore_legacy_assets import signatures
     signatures()
     from build_ratings import build_ratings

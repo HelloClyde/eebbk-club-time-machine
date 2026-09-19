@@ -1,11 +1,20 @@
 const root = import.meta.env.BASE_URL
 import { renderLegacyContent, collectLegacyTopicIds } from './legacy-content'
 import { createLinkMapLoader } from './link-map-loader'
+import { resolveThreadPage } from './thread-pages'
 import { ratingCategories } from './rating-filters'
 let emoticons
 const loadLinkMap = createLinkMapLoader(root)
 let digestMap
 let ratingsMap
+let threadPages
+function getThreadPages() {
+  threadPages ||= fetch(`${root}archive/thread-pages.json.gz`).then(async r=>{
+    if(!r.ok)throw new Error('主题分页索引加载失败')
+    return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json()
+  }).catch(e=>{threadPages=null;throw e})
+  return threadPages
+}
 function getRatings() {
   ratingsMap ||= fetch(`${root}archive/ratings.json.gz`).then(async r=>{
     if(!r.ok) throw new Error('评分记录加载失败')
@@ -39,8 +48,8 @@ export async function archiveRequest(url) {
     if(!url.searchParams.get('q') && !url.searchParams.get('board') && !url.searchParams.get('year') && Number(url.searchParams.get('page') || 1)===1) {
       const data=await getManifest()
       if(data.initial_items && url.searchParams.get('digest')!=='1' && !url.searchParams.get('rated')) {
-        const [digest,ratings]=await Promise.all([getDigest(),getRatings()])
-        return {items:data.initial_items.map(r=>({...r,digest:digest[r.post_id] || null,rating_count:ratings[r.id]?.length || 0})),total:data.total_posts,page:1,page_size:30}
+        const [digest,ratings,threads]=await Promise.all([getDigest(),getRatings(),getThreadPages()])
+        return {items:data.initial_items.map(r=>({...r,digest:digest[r.post_id] || null,rating_count:(threads.threads[r.id] || [[1,r.id]]).reduce((sum,[,rid])=>sum+(ratings[rid]?.length || 0),0)})),total:data.total_posts,page:1,page_size:30}
       }
     }
     if (!worker) {
@@ -50,11 +59,20 @@ export async function archiveRequest(url) {
     }
     return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});worker.postMessage({id,params:Object.fromEntries(url.searchParams)})})
   }
-  const id=Number(path.split('/').pop())
+  const route=resolveThreadPage(await getThreadPages(),Number(path.split('/').pop()),url.searchParams.get('page'))
+  const id=route.source
   const response=await fetch(`${root}archive/posts/${Math.floor(id/500)}.json.gz`)
   if(!response.ok) throw new Error('帖子数据加载失败')
   const data=await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json()
   if(!data[id]) throw new Error('帖子不存在')
+  let main=data[route.canonical]
+  if(!main) {
+    const r=await fetch(`${root}archive/catalog/${Math.floor(route.canonical/500)}.json.gz`)
+    if(!r.ok)throw new Error('主题信息加载失败')
+    main=(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json())[route.canonical]
+  }
+  for(const key of ['id','post_id','title','author','publish_time','board'])data[id][key]=main[key]
+  Object.assign(data[id],{thread_page:route.page,thread_pages:route.pages.map(([number])=>number),floor_offset:route.offset,total_floors:route.total || data[id].replies_list.length})
   data[id].digest=(await getDigest())[data[id].post_id] || null
   data[id].ratings=(await getRatings())[id] || []
   emoticons ||= fetch(`${root}emot/manifest.json`).then(r=>{if(!r.ok)throw new Error('表情资源加载失败');return r.json()}).then(names=>new Set(names)).catch(e=>{emoticons=null;throw e})

@@ -5,6 +5,8 @@ try {
   if(!manifest.total_posts)throw new Error('empty archive')
   await access(`${root}/catalog.json.gz`)
   const {gunzipSync}=await import('node:zlib')
+  const threads=JSON.parse(gunzipSync(await readFile(`${root}/thread-pages.json.gz`)))
+  if(manifest.archived_pages-Object.keys(threads.aliases).length!==manifest.total_posts)throw new Error('incorrect canonical topic count')
   const groups=JSON.parse(gunzipSync(await readFile(`${root}/catalog-manifest.json.gz`)))
   if(groups.reduce((sum,g)=>sum+g.count,0)!==manifest.total_posts)throw new Error('incomplete browsing groups')
   for(const group of groups)await access(`${root}/${group.path}`)

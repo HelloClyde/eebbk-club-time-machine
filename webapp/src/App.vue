@@ -92,15 +92,18 @@ function clearFilters() {
   loadPosts()
 }
 
-async function openPost(post) {
+async function openPost(post, threadPage = 1) {
   const version=++detailVersion
   error.value=''
   detailLoading.value = true
-  selected.value = { ...post, replies_list: [] }
-  window.location.hash = `post-${post.id}`
+  selected.value = { ...post, thread_page: threadPage, replies_list: [] }
+  window.location.hash = `post-${post.id}${threadPage > 1 ? '?page='+threadPage : ''}`
   try {
-    const detail=await fetchJson(apiUrl(`/posts/${post.id}`))
-    if(version===detailVersion)selected.value=detail
+    const detail=await fetchJson(apiUrl(`/posts/${post.id}`,{page:threadPage}))
+    if(version===detailVersion) {
+      selected.value=detail
+      history.replaceState(null,'',`#post-${detail.id}${detail.thread_page > 1 ? '?page='+detail.thread_page : ''}`)
+    }
   } catch (err) {
     error.value = err.message
   } finally {
@@ -144,12 +147,12 @@ watch([board, year, digest], () => { page.value = 1; loadPosts() })
 
 onMounted(async () => {
   window.addEventListener('hashchange',()=>{
-    const match=window.location.hash.match(/^#post-(\d+)$/)
-    if(match && selected.value?.id!==Number(match[1])) openPost({id:Number(match[1])})
+    const match=window.location.hash.match(/^#post-(\d+)(?:\?page=(\d+))?$/)
+    if(match && (selected.value?.id!==Number(match[1]) || selected.value?.thread_page!==Number(match[2] || 1))) openPost({id:Number(match[1])},Number(match[2] || 1))
     else if(!match)closePost()
   })
-  const linkedPost = window.location.hash.match(/^#post-(\d+)$/)
-  if (linkedPost) openPost({ id: Number(linkedPost[1]) })
+  const linkedPost = window.location.hash.match(/^#post-(\d+)(?:\?page=(\d+))?$/)
+  if (linkedPost) openPost({ id: Number(linkedPost[1]) },Number(linkedPost[2] || 1))
   try {
     const [boardData, statData] = await Promise.all([
       fetchJson(apiUrl('/boards')), fetchJson(apiUrl('/stats')),
@@ -229,7 +232,12 @@ onMounted(async () => {
     </template>
 
     <article v-else class="post-page">
-      <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.replies_list?.length || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
+      <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.total_floors || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
+      <div v-if="selected.thread_pages?.length > 1" class="list-pagination" role="navigation" aria-label="主题存档分页">
+        <button :disabled="detailLoading || selected.thread_page <= 1" @click="openPost(selected, selected.thread_page - 1)">上一页</button>
+        <label>存档分页 <select :value="selected.thread_page" :disabled="detailLoading" @change="openPost(selected, Number($event.target.value))"><option v-for="(number, i) in selected.thread_pages" :key="number" :value="i+1">第 {{ number }} 页</option></select> / {{ selected.thread_pages.length }} 页</label>
+        <button :disabled="detailLoading || selected.thread_page >= selected.thread_pages.length" @click="openPost(selected, selected.thread_page + 1)">下一页</button>
+      </div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
       <div v-if="selected.digest" class="digest-notice">
         <template v-if="selected.digest.source === 'candidate_review'">历史精华 · 候选审核补录（非系统标记，依据本帖加精表述）。
@@ -264,7 +272,7 @@ onMounted(async () => {
             </dl>
           </aside>
           <div class="floor-body">
-            <div class="floor-meta"><span>{{ reply.user_group || '论坛会员' }}</span><strong>{{ index + 1 }}楼</strong></div>
+            <div class="floor-meta"><span>{{ reply.user_group || '论坛会员' }}</span><strong>存档 {{ (selected.floor_offset || 0) + index + 1 }}楼</strong></div>
             <div class="post-by">Post By：{{ formatDate(reply.created_at) }}</div>
             <div class="message">
               <div v-if="reply.message_html" class="message-html" v-html="reply.message_html"></div>
@@ -288,6 +296,7 @@ onMounted(async () => {
         </section>
         <section v-if="!selected.replies_list?.length" class="post-floor single"><div class="floor-body"><div class="message">{{ selected.body || '暂未解析到正文，可打开原始存档查看。' }}</div></div></section>
         <div class="original-link">历史帖子只读存档</div>
+        <div v-if="selected.thread_pages?.length > 1" class="list-pagination" role="navigation" aria-label="主题存档分页"><button :disabled="selected.thread_page <= 1" @click="openPost(selected, selected.thread_page - 1)">上一页</button><span>第 {{ selected.thread_pages[selected.thread_page - 1] }} 页</span><button :disabled="selected.thread_page >= selected.thread_pages.length" @click="openPost(selected, selected.thread_page + 1)">下一页</button></div>
       </template>
     </article>
   </main>

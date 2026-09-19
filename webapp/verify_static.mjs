@@ -5,7 +5,27 @@ import { resolve } from 'node:path'
 import assert from 'node:assert/strict'
 const archive=resolve('public/archive')
 const manifest=JSON.parse(await readFile(`${archive}/manifest.json`,'utf8'))
-assert.equal(manifest.total_posts,267213)
+assert.equal(manifest.total_posts,265908)
+assert.equal(manifest.archived_pages,267213)
+const gzip=await import('node:zlib')
+const threads=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/thread-pages.json.gz`)))
+const rawCatalog=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
+const cat=rawCatalog.filter(r=>!threads.aliases[r.id])
+async function expectedSearch(q,scope='all',year='') {
+  let matched=new Set()
+  if(!q)matched=new Set(cat.map(r=>r.id))
+  else {
+    if(scope==='all' || scope==='body') {
+      const script='import sqlite3,json; d=sqlite3.connect("data/forum.db"); q='+JSON.stringify(q)+'; print(json.dumps(d.execute("select id from posts where body like ?",("%"+q+"%",)).fetchall()))'
+      for(const [id] of JSON.parse(execFileSync('python',['-c',script],{encoding:'utf8',maxBuffer:16*1024*1024,env:{...process.env,PYTHONIOENCODING:'utf-8'}})))matched.add(threads.aliases[id] || id)
+    }
+    if(scope!=='body') for(const r of cat) {
+      const fields=scope==='all' ? ['title','author','board'] : [scope]
+      if(fields.some(f=>(r[f] || '').toLowerCase().includes(q.toLowerCase())))matched.add(r.id)
+    }
+  }
+  return cat.filter(r=>matched.has(r.id) && (!year || r.publish_time.startsWith(year))).map(r=>r.id)
+}
 const originalFetch=globalThis.fetch
 const requested=[]
 globalThis.fetch=async input=>{
@@ -38,8 +58,7 @@ console.log(JSON.stringify({cold2008:{bytes:coldBytes,metadataBytes,requests:col
 for(const q of ['', '使命', '炒鸡飞侠', '" OR 1=1 --']){
   const t=performance.now()
   const result=await search({q,page:1,page_size:30})
-  const script='import sqlite3,json; d=sqlite3.connect("data/forum.db"); q='+JSON.stringify(q)+'; p="%"+q+"%"; print(json.dumps(d.execute("select id from posts where title like ? or author like ? or board like ? or body like ? order by publish_time desc,id desc",(p,p,p,p)).fetchall()))'
-  const expected=JSON.parse(execFileSync('python',['-c',script],{encoding:'utf8',maxBuffer:16*1024*1024,env:{...process.env,PYTHONIOENCODING:'utf-8'}})).map(x=>x[0])
+  const expected=await expectedSearch(q)
   assert.equal(result.total,expected.length,q)
   assert.deepEqual(result.items.map(r=>r.id),expected.slice(0,30),q)
   console.log(JSON.stringify({q,total:result.total,ms:Math.round(performance.now()-t)}))
@@ -52,8 +71,7 @@ for (const scope of ['title', 'author', 'body']) {
     const params={q,scope,year:'2008',page:1,page_size:30}
     const fetchCount=requested.length
     const actual=await search(params)
-    const script='import sqlite3,json; d=sqlite3.connect("data/forum.db"); q='+JSON.stringify(q)+'; print(json.dumps(d.execute("select id from posts where '+scope+' like ? and publish_time like ? order by publish_time desc,id desc",("%"+q+"%","2008%")).fetchall()))'
-    const expected=JSON.parse(execFileSync('python',['-c',script],{encoding:'utf8',maxBuffer:16*1024*1024,env:{...process.env,PYTHONIOENCODING:'utf-8'}})).map(r=>r[0])
+    const expected=await expectedSearch(q,scope,'2008')
     assert.equal(actual.total,expected.length,`${scope}: ${q}`)
     assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30))
     if(scope!=='body') {
@@ -70,7 +88,20 @@ for (const scope of ['title', 'author', 'body']) {
 }
 const result=await search({year:'2008',board:'学习机',page:1,page_size:30})
 assert.ok(result.items.every(r=>r.board==='学习机'&&r.publish_time.startsWith('2008')))
-const gzip=await import('node:zlib')
+for(const params of [
+  {q:'6988年终总结',scope:'title'},
+  {q:'6988年终总结',scope:'title',year:'2008'},
+  {q:'是512MB',scope:'body',year:'2007'},
+  {q:'卡住555',scope:'author'},
+]) {
+  const actual=await search({...params,page:1,page_size:30})
+  const expected=await expectedSearch(params.q,params.scope,params.year || '')
+  assert.equal(actual.total,expected.length)
+  assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30))
+  assert.ok(actual.items.every(r=>!threads.aliases[r.id]))
+  if(params.q==='6988年终总结')assert.equal(actual.total,params.year ? 0 : 1)
+  if(params.q==='是512MB')assert.ok(actual.items.some(r=>r.id===63090))
+}
 const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
 const collection=JSON.parse(await readFile('digest-collection.json','utf8'))
 assert.equal(Object.keys(collection).length,47)
@@ -79,7 +110,6 @@ for(const [topic,evidence] of Object.entries(collection)) {
   assert.equal(evidence.collection_id,176886)
   assert.equal(evidence.floor,1)
 }
-const cat=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/catalog.json.gz`)))
 assert.deepEqual(coldStart.items.map(r=>r.id),cat.filter(r=>r.publish_time.startsWith('2008')).slice(0,30).map(r=>r.id))
 for(const params of [{year:'2008'}, {board:cat[0].board}, {year:'2008',board:cat.find(r=>r.publish_time.startsWith('2008')).board}, {year:'1900'}]) {
   const expected=cat.filter(r=>(!params.year || r.publish_time.startsWith(params.year)) && (!params.board || r.board===params.board))
@@ -89,7 +119,9 @@ for(const params of [{year:'2008'}, {board:cat[0].board}, {year:'2008',board:cat
     assert.deepEqual(actual.items.map(r=>r.id),expected.slice((page-1)*30,page*30).map(r=>r.id))
   }
 }
-const ratings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
+const rawRatings=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/ratings.json.gz`)))
+const ratings={}
+for(const [id,logs] of Object.entries(rawRatings)) (ratings[threads.aliases[id] || id] ||= []).push(...logs)
 for(const reason of ['活动奖励','原创内容','鼓励分享','不存在的分类','']) {
   const expected=cat.filter(r=>(ratings[r.id]||[]).some(log=>String(log.reason??'').trim()===reason))
   const result=await search({rated:`reason:${reason}`,page:1,page_size:30})

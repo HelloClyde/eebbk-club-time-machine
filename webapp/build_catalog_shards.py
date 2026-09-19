@@ -1,5 +1,6 @@
 """Build small metadata shards and board/year browsing ID lists."""
 import gzip,json
+from build_thread_pages import canonical_catalog
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent/'public/archive'
 def save(path,value):
@@ -10,6 +11,7 @@ def build_catalog_shards():
     chunks={};groups={}
     for rank,row in enumerate(catalog):
         chunks.setdefault(row['id']//500,{})[row['id']]=row
+    for rank,row in enumerate(canonical_catalog(catalog)):
         groups.setdefault((row['board'],row['publish_time'][:4]),[]).append([row['id'],rank,row['post_id']])
     for chunk,rows in chunks.items():save(ROOT/'catalog'/f'{chunk}.json.gz',rows)
     manifest=[]

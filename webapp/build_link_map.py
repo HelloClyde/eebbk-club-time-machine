@@ -2,6 +2,7 @@
 import gzip
 import json
 from pathlib import Path
+from build_thread_pages import canonical_catalog
 
 ROOT = Path(__file__).resolve().parent / 'public/archive'
 
@@ -9,6 +10,7 @@ def build_link_map(catalog=None):
     if catalog is None:
         catalog = json.loads(gzip.decompress((ROOT / 'catalog.json.gz').read_bytes()))
     mapping = {}
+    catalog=canonical_catalog(catalog)
     # Same order as the list: choose the latest record if an ID has duplicates.
     for row in catalog:
         key = str(row['post_id'])

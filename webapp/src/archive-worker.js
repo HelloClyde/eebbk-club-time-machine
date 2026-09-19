@@ -13,6 +13,9 @@ async function read(path) {
   return cache.get(path)
 }
 let catalogManifest
+let threadPages
+const canonicalId=id=>threadPages.aliases[id] || id
+const topicRatings=id=>(threadPages.threads[id] || [[1,id]]).flatMap(([,rid])=>ratings[rid] || [])
 async function browseRows(params) {
   catalogManifest ||= await read('catalog-manifest.json.gz')
   const groups=catalogManifest.filter(g=>(!params.board || g.board===params.board) && (!params.year || g.year===params.year))
@@ -31,7 +34,7 @@ async function metadata(ids) {
       for(const row of Object.values(data)) rows.set(row.id,row)
     }))
   }
-  return ids.map(id=>rows.get(id)).filter(Boolean).map(row=>({...row,rating_count:ratings[row.id]?.length || 0,digest:digest[row.post_id] || null}))
+  return ids.map(id=>rows.get(id)).filter(Boolean).map(row=>({...row,rating_count:topicRatings(row.id).length,digest:digest[row.post_id] || null}))
 }
 let digest
 let ratings
@@ -40,6 +43,7 @@ self.onmessage = async ({data: {id, params}}) => {
   try {
     ratings ||= await read('ratings.json.gz')
     digest ||= await read('digest.json.gz')
+    threadPages ||= await read('thread-pages.json.gz')
     const q = (params.q || '').toLowerCase().trim()
     const scope = ['title', 'author', 'body'].includes(params.scope) ? params.scope : 'all'
     const metadataOnly = scope === 'title' || scope === 'author'
@@ -53,7 +57,7 @@ self.onmessage = async ({data: {id, params}}) => {
     }
     if(!q) {
       const rows=await browseRows(params)
-      const matches=rows.filter(([rid,,original])=>(params.digest!=='1' || digest[original]) && (!params.rated || matchesRating(ratings[rid],params.rated))).sort((a,b)=>a[1]-b[1]).map(r=>r[0])
+      const matches=rows.filter(([rid,,original])=>(params.digest!=='1' || digest[original]) && (!params.rated || matchesRating(topicRatings(rid),params.rated))).sort((a,b)=>a[1]-b[1]).map(r=>r[0])
       searches.set(searchKey,matches)
       if(searches.size>10)searches.delete(searches.keys().next().value)
       self.postMessage({id,result:{items:await metadata(matches.slice((page-1)*size,page*size)),total:matches.length,page,page_size:size}})
@@ -75,29 +79,37 @@ self.onmessage = async ({data: {id, params}}) => {
     }
     if(params.board || params.year || params.digest==='1' || params.rated) {
       const rows=await browseRows(params)
-      allowed=new Set(rows.filter(([rid,,original])=>allowed.has(rid) && (params.digest!=='1' || digest[original]) && (!params.rated || matchesRating(ratings[rid],params.rated))).map(r=>r[0]))
+      const permitted=new Set(rows.filter(([rid,,original])=>(params.digest!=='1' || digest[original]) && (!params.rated || matchesRating(topicRatings(rid),params.rated))).map(r=>r[0]))
+      allowed=new Set([...allowed].filter(rid=>permitted.has(canonicalId(rid))))
     }
-    let matches = (await metadata([...allowed])).filter(r => (!params.board || r.board === params.board) && (!params.year || r.publish_time.startsWith(params.year)))
-    matches.sort((a,b)=>a.publish_time===b.publish_time ? b.id-a.id : a.publish_time>b.publish_time ? -1 : 1)
-    if(params.digest==='1') matches=matches.filter(r=>r.digest)
-    if(params.rated) matches=matches.filter(r=>matchesRating(ratings[r.id],params.rated))
+    let matches = await metadata([...allowed])
+    const topics=await metadata([...new Set(matches.map(r=>canonicalId(r.id)))])
+    const topicMap=new Map(topics.map(r=>[r.id,r]))
     if (q && metadataOnly) matches = matches.filter(r => (r[scope] || '').toLowerCase().includes(q))
-    if (q && (scope === 'body' || (!metadataOnly && Array.from(q).length > 2))) {
+    if (q && !metadataOnly) {
       const verified=[]
       const groups=new Map()
-      for(const row of matches) {const chunk=Math.floor(row.id/500);if(!groups.has(chunk))groups.set(chunk,[]);groups.get(chunk).push(row)}
+      for(const row of matches) {
+        if(scope==='all' && Array.from(q).length<=2 && canonicalId(row.id)===row.id) {verified.push(row);continue}
+        const chunk=Math.floor(row.id/500);if(!groups.has(chunk))groups.set(chunk,[]);groups.get(chunk).push(row)
+      }
       const tasks=[...groups.entries()]
       for(let i=0;i<tasks.length;i+=6) {
         await Promise.all(tasks.slice(i,i+6).map(async ([chunk,rows])=>{
           const texts=await read(`texts/${chunk}.json.gz`)
           for(const row of rows) {
             const fields = texts[row.id]
-            if(scope === 'body' ? (fields[3] || '').includes(q) : fields.some(field=>field.includes(q))) verified.push(row)
+            const topic=topicMap.get(canonicalId(row.id))
+            const values=[topic.title,topic.author,topic.board].map(v=>(v || '').toLowerCase())
+            if(scope === 'body' ? (fields[3] || '').includes(q) : [...values,fields[3] || ''].some(field=>field.includes(q))) verified.push(row)
           }
         }))
       }
       const ids=new Set(verified.map(r=>r.id));matches=matches.filter(r=>ids.has(r.id))
     }
+    const matchedTopics=new Set(matches.map(r=>canonicalId(r.id)))
+    matches=topics.filter(r=>matchedTopics.has(r.id))
+    matches.sort((a,b)=>a.publish_time===b.publish_time ? b.id-a.id : a.publish_time>b.publish_time ? -1 : 1)
     searches.set(searchKey,matches)
     if(searches.size>10)searches.delete(searches.keys().next().value)
     self.postMessage({id, result:{items:matches.slice((page-1)*size,page*size),total:matches.length,page,page_size:size}})

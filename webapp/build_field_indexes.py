@@ -2,12 +2,14 @@
 import gzip
 import json
 from pathlib import Path
+from build_thread_pages import canonical_catalog
 
 OUT = Path(__file__).resolve().parent / 'public' / 'archive'
 
 def build_field_indexes(catalog=None):
     if catalog is None:
         catalog = json.loads(gzip.decompress((OUT / 'catalog.json.gz').read_bytes()))
+    catalog=canonical_catalog(catalog)
     for field in ('title', 'author'):
         buckets = [{} for _ in range(256)]
         for row in sorted(catalog, key=lambda r: r['id']):
