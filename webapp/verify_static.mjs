@@ -103,6 +103,8 @@ for(const params of [
   if(params.q==='是512MB')assert.ok(actual.items.some(r=>r.id===63090))
 }
 const digestMap=JSON.parse(gzip.gunzipSync(await readFile(`${archive}/digest.json.gz`)))
+assert.equal(digestMap['198352'].source,'user_confirmed')
+assert.equal(digestMap['198352'].record_id,68362)
 const collection=JSON.parse(await readFile('digest-collection.json','utf8'))
 assert.equal(Object.keys(collection).length,47)
 for(const [topic,evidence] of Object.entries(collection)) {
@@ -144,7 +146,7 @@ for(const year of ['', '2008']) {
   const actual=await search({digest:'1',year,page:1,page_size:30})
   assert.equal(actual.total,expected.length)
   assert.deepEqual(actual.items.map(r=>r.id),expected.slice(0,30).map(r=>r.id))
-  assert.ok(actual.items.every(r=>r.digest?.snapshot || ['candidate_review','screenshot_confirmed','collection'].includes(r.digest?.source)))
+  assert.ok(actual.items.every(r=>r.digest?.snapshot || ['candidate_review','screenshot_confirmed','collection','user_confirmed'].includes(r.digest?.source)))
   const next=await search({digest:'1',year,page:2,page_size:30})
   assert.deepEqual(next.items.map(r=>r.id),expected.slice(30,60).map(r=>r.id))
 }

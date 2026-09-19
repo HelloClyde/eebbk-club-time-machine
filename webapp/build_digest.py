@@ -39,6 +39,10 @@ def build_digest():
     if confirmed.exists():
         for topic,evidence in json.loads(confirmed.read_text('utf-8')).items():
             if topic not in result or not result[topic].get('snapshot'): result[topic]=evidence
+    manual=ROOT/'digest-user-confirmed.json'
+    if manual.exists():
+        for topic,evidence in json.loads(manual.read_text('utf-8')).items():
+            result.setdefault(topic,evidence)
     path.write_bytes(gzip.compress(json.dumps(result,separators=(',',':')).encode(),mtime=0))
     catalog=json.loads(gzip.decompress((path.parent/'catalog.json.gz').read_bytes()))
     print(json.dumps({'snapshots':len(files),'confirmed_topics':len(result),'matched_records':sum(str(r['post_id']) in result for r in catalog)}),flush=True)
