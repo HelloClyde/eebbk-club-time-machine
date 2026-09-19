@@ -206,7 +206,7 @@ onMounted(async () => {
             <tbody>
               <tr class="topic-divider"><td colspan="5">-= {{ digest ? '历史精华' : '主题列表' }} =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
-                <td class="status-cell"><span v-if="post.digest" class="digest-badge" :title="`历史精华：${post.digest.snapshot} 快照有系统加精标记`">精</span><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
+                <td class="status-cell"><span v-if="post.digest" class="digest-badge" :title="post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`">精</span><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
                 <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
@@ -223,14 +223,19 @@ onMounted(async () => {
           <button :disabled="page === pageCount" @click="setPage(page + 1)">下一页</button>
           <button v-if="visiblePages[visiblePages.length - 1] < pageCount" @click="setPage(pageCount)">…{{ pageCount }}</button>
         </nav>
-        <div class="list-legend"><b>论坛图例说明</b><div><span class="old-document" aria-hidden="true"></span>存档主题　<span class="digest-badge">精</span> 历史精华<span class="legend-note">精华以旧快照系统标记为据；无标记为未知，不表示非精华。其余未收录状态不作推断。</span></div></div>
+        <div class="list-legend"><b>论坛图例说明</b><div><span class="old-document" aria-hidden="true"></span>存档主题　<span class="digest-badge">精</span> 历史精华<span class="legend-note">包含旧快照系统标记与候选审核补录，来源见帖子详情；无标记为未知，不表示非精华。</span></div></div>
       </section>
     </template>
 
     <article v-else class="post-page">
       <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.replies_list?.length || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
-      <div v-if="selected.digest" class="digest-notice">本帖曾被加为精华（历史快照：{{ selected.digest.snapshot }}）。仅表示该快照时的状态。</div>
+      <div v-if="selected.digest" class="digest-notice">
+        <template v-if="selected.digest.source === 'candidate_review'">历史精华 · 候选审核补录（非系统标记，依据本帖加精表述）。
+          <details><summary>查看补录依据</summary><p v-for="(item,i) in selected.digest.evidence" :key="i">{{ item.floor }} 楼 · {{ item.author }} · {{ item.time }}：{{ item.context }}</p></details>
+        </template>
+        <template v-else>本帖曾被加为精华（历史快照：{{ selected.digest.snapshot }}）。仅表示该快照时的状态。</template>
+      </div>
       <div v-if="detailLoading" class="state">正在打开旧帖……</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else>

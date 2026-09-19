@@ -27,6 +27,10 @@ def build_digest():
                 topic,date=found
                 if topic not in result or result[topic]['snapshot']<date:result[topic]={'snapshot':date}
     path=ROOT/'public/archive/digest.json.gz'
+    reviewed=ROOT/'digest-reviewed.json'
+    if reviewed.exists():
+        for topic,evidence in json.loads(reviewed.read_text('utf-8')).items():
+            result.setdefault(topic,evidence)
     path.write_bytes(gzip.compress(json.dumps(result,separators=(',',':')).encode(),mtime=0))
     catalog=json.loads(gzip.decompress((path.parent/'catalog.json.gz').read_bytes()))
     print(json.dumps({'snapshots':len(files),'confirmed_topics':len(result),'matched_records':sum(str(r['post_id']) in result for r in catalog)}),flush=True)
