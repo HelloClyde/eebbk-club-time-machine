@@ -102,7 +102,7 @@ button { cursor: pointer; }
 .list-author span, .list-author time, .list-updated span, .list-updated time { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-author time, .list-updated time { color: #8e9ca5; font: 10px/13px Arial, sans-serif; }.list-updated span { font-size: 11px; }
 .list-counts { text-align: center; color: #67747b; font: 11px Arial, sans-serif; }.list-counts > span { color: #508b29; }
-.digest-badge { display: inline-block; padding: 1px 3px; border: 1px solid #7bb8db; color: #226aa1; background: #e6f5ff; font-weight: bold; }
+.digest-icon { display: inline-block; width: 24px; height: 28px; vertical-align: middle; object-fit: contain; }
 .rating-badge { display: inline-block; padding: 1px 3px; border: 1px solid #b8c898; color: #627a29; background: #f4f8e9; }
 .ratings-panel { padding: 8px 10px; font-size: 12px; border-bottom: 1px solid #c1d5f4; overflow-x: auto; }
 .ratings-panel summary { cursor: pointer; color: #627a29; }

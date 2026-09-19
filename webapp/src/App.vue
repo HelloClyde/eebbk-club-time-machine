@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { archiveRequest } from './archive'
 import { legacyTitle } from './legacy-title'
+import digestIcon from './assets/digest-topic.png'
 
 const posts = ref([])
 const boards = ref([])
@@ -206,7 +207,7 @@ onMounted(async () => {
             <tbody>
               <tr class="topic-divider"><td colspan="5">-= {{ digest ? '历史精华' : '主题列表' }} =-</td></tr>
               <tr v-for="post in posts" :key="post.id">
-                <td class="status-cell"><span v-if="post.digest" class="digest-badge" :title="post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`">精</span><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
+                <td class="status-cell"><img v-if="post.digest" :src="digestIcon" class="digest-icon" alt="历史精华" :title="post.digest.source === 'candidate_review' ? '历史精华：候选审核补录，非系统标记' : `历史精华：${post.digest.snapshot} 快照有系统加精标记`" /><span v-if="post.rating_count" class="rating-badge" :title="`有 ${post.rating_count} 条评分记录，不代表精华`">评</span><span v-if="!post.digest && !post.rating_count" class="old-document" role="img" aria-label="存档主题" title="精华状态未知"></span></td>
                 <td class="subject-cell"><span class="topic-expand" aria-hidden="true">⊞</span><a :href="`#post-${post.id}`" target="_blank" rel="noopener" :style="{ color: legacyTitle(post.title).color }" :title="`${legacyTitle(post.title).text}（新标签页打开）`"><template v-for="(part,i) in titleParts(post.title)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></a><small v-if="!board">[{{ post.board }}]</small></td>
                 <td class="list-author"><span>{{ post.author || '匿名会员' }}</span><time :datetime="post.publish_time">{{ post.publish_time?.slice(0, 10) || '时间不详' }}</time></td>
                 <td class="list-counts" title="原帖回复量和人气尚未收录"><span>{{ post.replies ?? '—' }}</span> / {{ post.views ?? '—' }}</td>
@@ -223,7 +224,7 @@ onMounted(async () => {
           <button :disabled="page === pageCount" @click="setPage(page + 1)">下一页</button>
           <button v-if="visiblePages[visiblePages.length - 1] < pageCount" @click="setPage(pageCount)">…{{ pageCount }}</button>
         </nav>
-        <div class="list-legend"><b>论坛图例说明</b><div><span class="old-document" aria-hidden="true"></span>存档主题　<span class="digest-badge">精</span> 历史精华<span class="legend-note">包含旧快照系统标记与候选审核补录，来源见帖子详情；无标记为未知，不表示非精华。</span></div></div>
+        <div class="list-legend"><b>论坛图例说明</b><div><span class="old-document" aria-hidden="true"></span>存档主题　<img :src="digestIcon" class="digest-icon" alt="历史精华" /> 历史精华<span class="legend-note">包含旧快照系统标记与候选审核补录，来源见帖子详情；无标记为未知，不表示非精华。</span></div></div>
       </section>
     </template>
 
