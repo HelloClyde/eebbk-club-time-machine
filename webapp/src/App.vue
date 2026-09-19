@@ -30,6 +30,13 @@ const years = computed(() => {
   return Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => String(last - i))
 })
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+const ratingsByFloor = computed(() => {
+  const groups = {}
+  for (const rating of selected.value?.ratings || []) {
+    (groups[rating.floor] ||= []).push(rating)
+  }
+  return groups
+})
 const visiblePages = computed(() => {
   const start = Math.max(1, Math.min(page.value - 4, pageCount.value - 9))
   return Array.from({ length: Math.min(10, pageCount.value) }, (_, i) => start + i)
@@ -227,12 +234,6 @@ onMounted(async () => {
       <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.replies_list?.length || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
       <div v-if="selected.digest" class="digest-notice">本帖曾被加为精华（历史快照：{{ selected.digest.snapshot }}）。仅表示该快照时的状态。</div>
-      <details v-if="selected.ratings?.length" class="ratings-panel">
-        <summary>有评分记录（{{ selected.ratings.length }} 条，不代表精华）</summary>
-        <table><thead><tr><th>楼层</th><th>评分人</th><th>评分</th><th>理由</th><th>时间</th></tr></thead><tbody>
-          <tr v-for="(rating,index) in selected.ratings" :key="index"><td>{{ rating.floor }} 楼</td><td>{{ rating.posterName || '未收录' }}</td><td>{{ rating.score ?? '未收录' }} {{ rating.beanUnit }}</td><td>{{ rating.reason || '未收录' }}</td><td>{{ rating.createTime ? new Date(rating.createTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未收录' }}</td></tr>
-        </tbody></table>
-      </details>
       <div v-if="detailLoading" class="state">正在打开旧帖……</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else>
@@ -269,6 +270,12 @@ onMounted(async () => {
                   <span><b>下载附件</b><small>{{ attachment.name }}　({{ attachment.kind }} 文件)</small></span>
                 </a>
               </div>
+              <details v-if="ratingsByFloor[index + 1]?.length" class="ratings-panel" open>
+                <summary>本楼评分记录（{{ ratingsByFloor[index + 1].length }} 条）</summary>
+                <table><thead><tr><th>评分人</th><th>评分</th><th>理由</th><th>时间</th></tr></thead><tbody>
+                  <tr v-for="(rating,ratingIndex) in ratingsByFloor[index + 1]" :key="ratingIndex"><td>{{ rating.posterName || '未收录' }}</td><td>{{ Number(rating.score) > 0 ? '+' : '' }}{{ rating.score ?? '未收录' }} {{ rating.beanUnit }}</td><td>{{ rating.reason || '未收录' }}</td><td>{{ rating.createTime ? new Date(rating.createTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未收录' }}</td></tr>
+                </tbody></table>
+              </details>
               <div v-if="reply.signature_html || reply.signature" class="signature"><hr /><div v-if="reply.signature_html" v-html="reply.signature_html"></div><div v-else>{{ reply.signature }}</div></div>
             </div>
             <div class="floor-tail"><span>支持(0)</span><span>反对(0)</span><span>引用</span><span>回复</span><span>TOP</span></div>
