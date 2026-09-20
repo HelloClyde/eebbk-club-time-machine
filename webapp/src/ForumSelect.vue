@@ -39,7 +39,7 @@ onBeforeUnmount(()=>{document.removeEventListener('click',outside);window.remove
 </script>
 
 <template>
-  <button ref="trigger" type="button" class="forum-select" :disabled="disabled" :aria-label="label" aria-haspopup="listbox" :aria-expanded="opened" @click="open" @keydown.down.prevent="!opened && open()" @keydown.up.prevent="!opened && open()">{{ selected }} <span aria-hidden="true">▾</span></button>
+  <button ref="trigger" type="button" class="forum-select" :disabled="disabled" :aria-label="label" aria-haspopup="listbox" :aria-expanded="opened" @click="open" @keydown.down.prevent="!opened && open()" @keydown.up.prevent="!opened && open()">{{ selected }} <span class="forum-select-arrow" aria-hidden="true"></span></button>
   <Teleport to="body">
     <div v-if="opened" ref="menu" class="forum-select-menu" role="listbox" :aria-label="label" :style="position" @keydown="keyboard">
       <button v-for="option in options" :key="option.value" type="button" role="option" :aria-selected="option.value===modelValue" @click="choose(option.value)">{{ option.label }}</button>
@@ -53,5 +53,8 @@ onBeforeUnmount(()=>{document.removeEventListener('click',outside);window.remove
 .forum-select-menu button {display:block;width:100%;min-height:32px;padding:7px 9px;border:0;background:white;color:#344f60;text-align:left;font:inherit;touch-action:manipulation}
 .forum-select-menu button[aria-selected=true] {background:#dfedf9;color:#126aab;font-weight:bold}
 .forum-select-menu button:focus,.forum-select-menu button:hover {background:#c9e5fa;outline:1px solid #80acd2}
-@media (pointer:coarse) {.forum-select,.list-filters .forum-select {min-height:36px}.forum-select-menu button {min-height:44px;font-size:14px}}
+.forum-select-arrow {display:inline-block;flex:0 0 auto;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor}
+.forum-select[aria-expanded=true] .forum-select-arrow {transform:rotate(180deg)}
+.forum-select,.list-filters .forum-select {height:21px;min-height:21px;line-height:17px;white-space:nowrap}
+@media (pointer:coarse) {.forum-select-menu button {min-height:32px;padding:6px 9px;font-size:12px}}
 </style>

@@ -97,7 +97,11 @@ button { cursor: pointer; }
 .old-document::after { content: ''; position: absolute; left: 4px; right: 4px; bottom: 5px; height: 1px; background: #afccd8; box-shadow: 0 -3px #afccd8; }
 .subject-cell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .subject-cell a { color: #172d3c; text-decoration: none; }.subject-cell a:hover { color: #006acb; text-decoration: underline; }.subject-cell mark { background: #fff0ab; color: #b64f00; }
-.subject-cell small { margin-left: 8px; color: #8499a7; font-size: 10px; }.topic-expand { margin-right: 8px; color: #6d8ca0; font: 10px Arial; }
+.subject-cell small { margin-left: 8px; color: #8499a7; font-size: 10px; }
+.topic-expand {display:inline-block;position:relative;width:9px;height:9px;margin-right:8px;vertical-align:middle;border:1px solid #6d8ca0;color:#6d8ca0}
+.topic-expand::before,.topic-expand::after {content:'';position:absolute;background:currentColor}
+.topic-expand::before {width:5px;height:1px;left:1px;top:3px}
+.topic-expand::after {width:1px;height:5px;left:3px;top:1px}
 .legacy-topic-table .list-author, .legacy-topic-table .list-updated { background: #edf5f9; border-left: 1px solid #c1d5f4; border-right: 1px solid #c1d5f4; }
 .list-author span, .list-author time, .list-updated span, .list-updated time { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-author time, .list-updated time { color: #8e9ca5; font: 10px/13px Arial, sans-serif; }.list-updated span { font-size: 11px; }
