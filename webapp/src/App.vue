@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { archiveRequest } from './archive'
 import { legacyTitle } from './legacy-title'
 import digestIcon from './assets/digest-topic.png'
+import ForumSelect from './ForumSelect.vue'
 
 const posts = ref([])
 const boards = ref([])
@@ -194,11 +195,11 @@ onMounted(async () => {
           <span>{{ board || '全部版块' }}　|　{{ activeQuery ? `搜索：${activeQuery}` : '帖子列表' }}　|　按发表时间排序</span>
         </div>
         <form class="list-filters" @submit.prevent="submitSearch">
-          <select v-model="digest" aria-label="精华筛选"><option value="">全部主题</option><option value="1">历史精华</option></select>
-          <select v-model="legacyBoard" aria-label="原论坛板块"><option value="">原论坛板块：不限</option><option value="38">编程区（全部线索）</option><option value="snapshot">编程区（旧快照确认）</option><option value="link">编程区（旧链接推定）</option></select>
-          <select v-model="searchScope" aria-label="搜索范围"><option value="all">全部内容</option><option value="title">只搜标题</option><option value="author">只搜作者</option><option value="body">只搜正文（首帖）</option></select>
-          <select v-model="board" aria-label="论坛版块"><option value="">全部版块</option><option v-for="item in boards" :key="item.board" :value="item.board">{{ item.board }} ({{ item.count }})</option></select>
-          <select v-model="year" aria-label="年份"><option value="">全部年份</option><option v-for="item in years" :key="item" :value="item">{{ item }} 年</option></select>
+          <ForumSelect v-model="digest" label="精华筛选" :options="[{value:'',label:'全部主题'},{value:'1',label:'历史精华'}]" />
+          <ForumSelect v-model="legacyBoard" label="原论坛板块" :options="[{value:'',label:'原论坛板块：不限'},{value:'38',label:'编程区（全部线索）'},{value:'snapshot',label:'编程区（旧快照确认）'},{value:'link',label:'编程区（旧链接推定）'}]" />
+          <ForumSelect v-model="searchScope" label="搜索范围" :options="[{value:'all',label:'全部内容'},{value:'title',label:'只搜标题'},{value:'author',label:'只搜作者'},{value:'body',label:'只搜正文（首帖）'}]" />
+          <ForumSelect v-model="board" label="论坛版块" :options="[{value:'',label:'全部版块'},...boards.map(item=>({value:item.board,label:item.board+' ('+item.count+')'}))]" />
+          <ForumSelect v-model="year" label="年份" :options="[{value:'',label:'全部年份'},...years.map(item=>({value:item,label:item+' 年'}))]" />
           <input v-model="query" aria-label="搜索关键词" :placeholder="{ all: '标题、作者、正文', title: '输入标题关键词', author: '输入作者名称', body: '输入首帖正文关键词' }[searchScope]" />
           <button type="submit">站内搜索</button>
           <button v-if="activeQuery || board || year || digest || legacyBoard" type="button" @click="clearFilters">全部主题</button>
@@ -238,7 +239,7 @@ onMounted(async () => {
       <div class="post-toolbar"><button @click="closePost">↩ 回到主题列表</button><span>已存档 {{ selected.total_floors || 0 }} 个楼层　主题编号：{{ selected.post_id }}</span></div>
       <div v-if="selected.thread_pages?.length > 1" class="list-pagination" role="navigation" aria-label="主题存档分页">
         <button :disabled="detailLoading || selected.thread_page <= 1" @click="openPost(selected, selected.thread_page - 1)">上一页</button>
-        <label>存档分页 <select :value="selected.thread_page" :disabled="detailLoading" @change="openPost(selected, Number($event.target.value))"><option v-for="(number, i) in selected.thread_pages" :key="number" :value="i+1">第 {{ number }} 页</option></select> / {{ selected.thread_pages.length }} 页</label>
+        <div>存档分页 <ForumSelect :model-value="selected.thread_page" :disabled="detailLoading" label="存档分页" :options="selected.thread_pages.map((number,i)=>({value:i+1,label:'第 '+number+' 页'}))" @update:model-value="openPost(selected, $event)" /> / {{ selected.thread_pages.length }} 页</div>
         <button :disabled="detailLoading || selected.thread_page >= selected.thread_pages.length" @click="openPost(selected, selected.thread_page + 1)">下一页</button>
       </div>
       <header class="post-title"><span>主题：</span><h1 :style="{ color: legacyTitle(selected.title).color }">{{ legacyTitle(selected.title).text }}</h1><small>[{{ selected.board }}]</small></header>
